@@ -1,3 +1,5 @@
+
+/*
 BSD 3-Clause License
 
 Copyright (c) 2022, Alex Tarasov
@@ -27,3 +29,45 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
+#pragma once
+
+#include <mutex>
+#include <condition_variable>
+
+class Semaphore {
+public:
+    Semaphore (int count = 0)
+        : c(count) {}
+    
+    Semaphore (Semaphore&& other)
+        : c(other.c) {}
+
+    inline void notify(uint32_t num = 1)
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        c += num;
+        cv.notify_one();
+    }
+
+    inline void wait(uint32_t num = 1)
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+
+        while(c < num){
+            cv.wait(lock);
+        }
+        c -= num;
+    }
+    
+    inline int count(){
+        std::unique_lock<std::mutex> lock(mtx);
+        return c;
+    }
+
+private:
+    std::mutex mtx;
+    std::condition_variable cv;
+    int c;
+};
