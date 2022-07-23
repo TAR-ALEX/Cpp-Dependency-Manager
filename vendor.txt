@@ -3,6 +3,8 @@ git "https://github.com/yhirose/cpp-httplib.git" v0.10.9 "./httplib.h" "./vendor
 git "https://github.com/tmaklin/bxzstr.git" v1.1.0 "./include" "./vendor/include",
 
 git "https://github.com/TAR-ALEX/Tar-Cpp.git" main "./include" "./vendor/include",
+git "https://github.com/TAR-ALEX/io_tools.git" master "./include" "./vendor/include",
+
+git "https://github.com/TAR-ALEX/Ar-Cpp.git" main "./include" "./vendor/include",
 
 tar "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz" "./boost_1_79_0/boost.png" "./vendor/include/",
-
