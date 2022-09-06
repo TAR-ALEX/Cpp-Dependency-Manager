@@ -28,3 +28,9 @@ liblzma.so.5
 libz.so.1
 libbz2.so.1.0
 ```
+
+```
+sudo apt install build-essential && sudo apt install libbz2-dev && sudo apt install liblzma-dev && sudo apt install libz-dev && sudo apt install libssl-dev && sudo apt install git
+```
+
+optionally install `sudo apt install libboost-all-dev libboost-dev`

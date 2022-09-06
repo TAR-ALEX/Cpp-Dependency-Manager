@@ -33,41 +33,37 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
 
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
 
-class Semaphore {
-public:
-    Semaphore (int count = 0)
-        : c(count) {}
-    
-    Semaphore (Semaphore&& other)
-        : c(other.c) {}
+namespace estd {
+	class Semaphore {
+	public:
+		Semaphore(int count = 0) : c(count) {}
 
-    inline void notify(uint32_t num = 1)
-    {
-        std::unique_lock<std::mutex> lock(mtx);
-        c += num;
-        cv.notify_one();
-    }
+		Semaphore(Semaphore&& other) : c(other.c) {}
 
-    inline void wait(uint32_t num = 1)
-    {
-        std::unique_lock<std::mutex> lock(mtx);
+		inline void notify(uint32_t num = 1) {
+			std::unique_lock<std::mutex> lock(mtx);
+			c += num;
+			cv.notify_one();
+		}
 
-        while(c < num){
-            cv.wait(lock);
-        }
-        c -= num;
-    }
-    
-    inline int count(){
-        std::unique_lock<std::mutex> lock(mtx);
-        return c;
-    }
+		inline void wait(uint32_t num = 1) {
+			std::unique_lock<std::mutex> lock(mtx);
 
-private:
-    std::mutex mtx;
-    std::condition_variable cv;
-    int c;
-};
+			while ((int64_t)c < (int64_t)num) { cv.wait(lock); }
+			c -= num;
+		}
+
+		inline int count() {
+			std::unique_lock<std::mutex> lock(mtx);
+			return c;
+		}
+
+	private:
+		std::mutex mtx;
+		std::condition_variable cv;
+		int c;
+	};
+}// namespace estd

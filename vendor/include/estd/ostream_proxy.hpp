@@ -29,59 +29,56 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #pragma once
-#ifndef tokenizer_hpp
-#define tokenizer_hpp
 
-#include <fstream>
+#include <initializer_list>
+#include <ostream>
 #include <vector>
 
-using namespace std;
+namespace estd {
 
-struct Token{
-private:
-  string ReplaceAll(string str, const string& from, const string& to) {
-    size_t start_pos = 0;
-    while((start_pos = str.find(from, start_pos)) != std::string::npos) {
-        str.replace(start_pos, from.length(), to);
-        start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
-    }
-    return str;
-  }
+	class ostream_proxy : public std::ostream {
+	private:
+		std::vector<std::ostream*> fwd = {};
 
-public:
-  string location;
-  string value;
-  Token(){
-    location = "";
-    value = "";
-  }
-  Token(string s){
-    location = "";
-    value = s;
-  }
-  Token(string s, string c){
-    location = c;
-    value = s;
-  }
-  string toString(){
-    return value + " //"+ location;
-  }
-  string getString(){
-    string result = value;
-    if(result.size() <= 0) return "";
-    if(result[0] != '"') return result;
+	public:
+		ostream_proxy& operator=(const ostream_proxy& other) {
+			this->fwd = other.fwd;
+			return *this;
+		}
 
-    result = ReplaceAll(result, "\\n", "\n");
-    result = ReplaceAll(result, "\\\"", "\"");
-    result = ReplaceAll(result, "\\\\", "\\");
-    result = ReplaceAll(result, "\\0", "\0");
-    if(result.size() < 2 || result[0] != '"' || result[result.size()-1] != '"') return "";
-    return result.substr(1,result.size()-2);
-  }
-};
+		ostream_proxy() {}
 
-struct Tokenizer{
-  vector<Token> tokenize(istream &infile);
-};
+		ostream_proxy(std::initializer_list<std::ostream*> ostrms) {
+			for (auto& ostrm : ostrms) this->forward(ostrm);
+		}
 
-#endif /* tokenizer_hpp */
+		ostream_proxy(const ostream_proxy& other) { this->fwd = other.fwd; }
+
+		ostream_proxy(ostream_proxy&& other) { this->fwd = other.fwd; }
+
+		template <typename T>
+		ostream_proxy& operator<<(T s) {
+			for (auto ostrm : fwd) { (*ostrm) << s; }
+
+			return *this;
+		}
+		ostream_proxy& operator<<(std::ios& (*pf)(std::ios&)) {
+			for (auto ostrm : fwd) { (*ostrm) << pf; }
+
+			return *this;
+		}
+		ostream_proxy& operator<<(std::ios_base& (*pf)(std::ios_base&)) {
+			for (auto ostrm : fwd) { (*ostrm) << pf; }
+
+			return *this;
+		}
+		ostream_proxy& operator<<(std::ostream& (*pf)(std::ostream&)) {
+			for (auto ostrm : fwd) { (*ostrm) << pf; }
+
+			return *this;
+		}
+		void forward(std::ostream& ostrm) { fwd.push_back(&ostrm); }
+		void forward(std::ostream* ostrm) { fwd.push_back(ostrm); }
+	};
+
+};// namespace estd
