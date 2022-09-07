@@ -75,11 +75,13 @@ namespace omtl {
 
         std::string getDiagnosticString();
         std::string getRaw();
+        std::string getValue();
 
         bool isString() { return dataType == Token::string; }
         bool isComment() { return dataType == Token::comment; }
         bool isName() { return dataType == Token::name; }
         bool isNumber() { return dataType == Token::number; }
+        bool isValue() { return isString() || isNumber() || isName(); }
 
         std::string getString();
         std::string getEscapedString();
@@ -91,7 +93,8 @@ namespace omtl {
     class Tokenizer {
     public:
         bool storeCommentsAsPadding = true;
-        std::vector<Token> tokenize(std::istream& infile);
+        std::vector<Token> tokenize(std::istream& infile, std::string filename = "");
+        std::vector<Token> tokenize(std::string filename);
         std::string reconstruct(std::vector<Token>& tokens);
     };
 

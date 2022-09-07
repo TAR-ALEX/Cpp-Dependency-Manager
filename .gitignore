@@ -1,3 +1,5 @@
 /build/
 /.vscode/
 /gmon.out
+/vendor2/
+/vendor/include/boost/regex/v4/

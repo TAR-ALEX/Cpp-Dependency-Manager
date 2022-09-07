@@ -31,6 +31,7 @@
 #define CPPHTTPLIB_OPENSSL_SUPPORT
 #include "omtl/ParseTree.hpp"
 #include "omtl/Tokenizer.hpp"
+#include "tmpdir.h"
 #include <bxzstr.hpp>
 #include <deb-downloader.hpp>
 #include <estd/ptr.hpp>
@@ -46,19 +47,11 @@ using namespace std;
 using namespace httplib;
 using namespace omtl;
 using namespace estd::shortnames;
+
 namespace fs = std::filesystem;
 
 cptr<deb::Installer> debInstaller;
-
-std::string generateUniqueTempDir() {
-    while (true) {
-        std::filesystem::path name = "." + estd::string_util::gen_random(10);
-        if (!std::filesystem::exists(name)) {
-            std::filesystem::create_directories(name);
-            return name.string();
-        }
-    }
-}
+cptr<TmpDir> temp;
 
 tuple<string, string, string> splitUrl(string url) {
     std::string delimiter = " ";
@@ -121,15 +114,15 @@ std::filesystem::path downloadFile(string url, std::filesystem::path location) {
     return location / filename;
 }
 
-void parseGit(Element tokens, std::filesystem::path root) {
+void parseGit(Element tokens) {
     if (tokens.size() != 5) {
         cerr << "[WARNING] not enough arguments for git statement at " + tokens.location << endl;
     }
 
-    string sourceUrl = tokens[1]->isString() ? tokens[1]->getString() : tokens[1]->getName();
-    string sourceHash = tokens[2]->isString() ? tokens[2]->getString() : tokens[2]->getName();
-    string source = tokens[3]->isString() ? tokens[3]->getString() : tokens[3]->getName();
-    string destination = tokens[4]->isString() ? tokens[4]->getString() : tokens[4]->getName();
+    string sourceUrl = tokens[1]->getValue();
+    string sourceHash = tokens[2]->getValue();
+    string source = tokens[3]->getValue();
+    string destination = tokens[4]->getValue();
 
     string gitCall = "git clone '";
     gitCall += sourceUrl;
@@ -138,14 +131,14 @@ void parseGit(Element tokens, std::filesystem::path root) {
     gitCall += sourceHash;
     gitCall += " '";
 
-    gitCall += (root / "tmp").string();
+    gitCall += (temp->path).string();
     gitCall += "'";
 
     cout << gitCall << endl;
     if (system(gitCall.c_str()) != 0) { cout << "git clone for " << sourceUrl << " returned a non zero exit code\n"; }
 
-    const auto src = root / "tmp" / source;
-    const auto target = root / destination;
+    const auto src = temp->path / source;
+    const auto target = fs::current_path() / destination;
 
     cout << src.c_str() << endl << target.c_str() << endl;
 
@@ -157,37 +150,37 @@ void parseGit(Element tokens, std::filesystem::path root) {
 
     fs::copy(src, target, fs::copy_options::overwrite_existing | fs::copy_options::recursive);
     cout << endl;
-    fs::remove_all(root / "tmp");
+    temp->discard();
 }
 
-void parseTar(Element tokens, std::filesystem::path root) {
+void parseTar(Element tokens) {
     if (tokens.size() != 4) {
         cerr << "[WARNING] not enough arguments for tar statement at " + tokens.location << endl;
     }
 
-    string sourceUrl = tokens[1]->isString() ? tokens[1]->getString() : tokens[1]->getName();
-    string source = tokens[2]->isString() ? tokens[2]->getString() : tokens[2]->getName();
-    string destination = tokens[3]->isString() ? tokens[3]->getString() : tokens[3]->getName();
+    string sourceUrl = tokens[1]->getValue();
+    string source = tokens[2]->getValue();
+    string destination = tokens[3]->getValue();
 
     cout << sourceUrl << endl;
 
-    string filename = downloadFile(sourceUrl, root / "tmp");
+    string filename = downloadFile(sourceUrl, temp->path);
 
     bxz::ifstream zFile = bxz::ifstream(filename);
     tar::Reader r(zFile);
 
-    const auto target = root / destination;
+    const auto target = fs::current_path() / destination;
 
-    cout << source.c_str() << endl << target.c_str() << endl;
+    cout << "Installing .tar package " << tokens[1]->getValue() << endl;
 
     r.extractPath(source, target);
 
     cout << endl;
     zFile.close();
-    fs::remove_all(root / "tmp");
+    temp->discard();
 }
 
-void parseDebInit(Element tokens, std::filesystem::path root) {
+void parseDebInit(Element tokens) {
     std::vector<std::string> sources;
     if (tokens.size() < 2) {
         cerr << "[WARNING] not enough arguments for deb-repo statement at " + tokens.location << endl;
@@ -199,7 +192,6 @@ void parseDebInit(Element tokens, std::filesystem::path root) {
                 cerr << "[WARNING] debian repository must be a string " + line->location << endl;
                 continue;
             }
-            cerr << "Added: " << line->getString() << endl;
             sources.push_back(line->getString());
         }
         debInstaller = new deb::Installer(sources);
@@ -208,49 +200,56 @@ void parseDebInit(Element tokens, std::filesystem::path root) {
     }
 }
 
-void parseDebMarkInstall(Element tokens, std::filesystem::path root) {
+void parseDebMarkInstall(Element tokens) {
     if (tokens.size() < 2) {
         cerr << "[WARNING] not enough arguments for deb-ignore statement at " + tokens.location << endl;
     }
-    for (size_t i = 1; i < tokens.size(); i++) { debInstaller->markPreInstalled({tokens[i]->getString()}); }
+    for (size_t i = 1; i < tokens.size(); i++) { debInstaller->markPreInstalled({tokens[i]->getValue()}); }
 }
 
-void parseDebInstall(Element tokens, std::filesystem::path root) {
+void parseDebInstall(Element tokens) {
     if (tokens.size() != 4) {
         cerr << "[WARNING] not enough arguments for deb statement at " + tokens.location << endl;
     }
+    cout << "Installing .deb package " << tokens[1]->getValue() << endl;
     debInstaller->install(
-        tokens[1]->isString() ? tokens[1]->getString() : tokens[1]->getName(),
+        tokens[1]->getValue(),
         {
-            {tokens[2]->getString(), tokens[3]->getString()},
+            {tokens[2]->getValue(), tokens[3]->getValue()},
         }
     );
     debInstaller->clearInstalled();
 }
 
-void parseInclude(Element cmd, std::filesystem::path root) {
+void parseBlock(Element pt);
+void parseInclude(Element cmd) {
     if (cmd.size() != 2) throw runtime_error("invalid include command at " + cmd.location);
-    ifstream configFile(cmd[1]->isString() ? cmd[1]->getString() : cmd[1]->getName());
     Tokenizer tkn;
     ParseTreeBuilder ptb;
 
-    auto pt = ptb.buildParseTree(tkn.tokenize(configFile));
+    auto pt = ptb.buildParseTree(tkn.tokenize(cmd[1]->getValue()));
 
-    fs::remove_all(root / "tmp");
+    temp->discard();
 
+    parseBlock(pt);
+}
+
+void parseBlock(Element pt) {
     for (size_t i = 0; i < pt.size(); i++) {
         if (pt[i]->size() <= 0) continue;
         if (!pt[i][0]->isName()) continue;
-        if (pt[i][0]->getName() == "git") parseGit(pt[i].value(), root);
-        if (pt[i][0]->getName() == "tar") parseTar(pt[i].value(), root);
-        if (pt[i][0]->getName() == "deb-init") parseDebInit(pt[i].value(), root);
-        if (pt[i][0]->getName() == "deb-ignore") parseDebMarkInstall(pt[i].value(), root);
-        if (pt[i][0]->getName() == "deb") parseDebInstall(pt[i].value(), root);
-        if (pt[i][0]->getName() == "include") parseInclude(pt[i].value(), root);
+        if (pt[i][0]->getName() == "git") parseGit(pt[i].value());
+        if (pt[i][0]->getName() == "tar") parseTar(pt[i].value());
+        if (pt[i][0]->getName() == "deb-init") parseDebInit(pt[i].value());
+        if (pt[i][0]->getName() == "deb-ignore") parseDebMarkInstall(pt[i].value());
+        if (pt[i][0]->getName() == "deb") parseDebInstall(pt[i].value());
+        if (pt[i][0]->getName() == "include") parseInclude(pt[i].value());
     }
 }
 
 int main() {
-    parseInclude(Element({Token("include"), Token("vendor.txt")}), fs::current_path());
+    srand(time(nullptr));
+    temp = new TmpDir();
+    parseInclude(Element({Token("include"), Token("vendor.txt")}));
     return 0;
 }

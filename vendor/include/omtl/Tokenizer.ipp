@@ -51,10 +51,16 @@ std::string Token::getDiagnosticString() {
         {Token::number, "number"},
     };
 
-    return strfy[dataType] + "\t(" + location + ")\t" + rawValue + ""; //escape_string
+    return strfy[dataType] + "\t" + location + "\t" + rawValue + ""; //escape_string
 }
 
-std::vector<Token> Tokenizer::tokenize(std::istream& infile) {
+std::vector<Token> Tokenizer::tokenize(std::string filename) {
+    std::ifstream file(filename, std::ios::binary | std::ios::in);
+    if (file.fail()) throw std::runtime_error("File " + filename + " does not exist");
+    return tokenize(file, filename);
+}
+
+std::vector<Token> Tokenizer::tokenize(std::istream& infile, std::string filename) {
     char c;
     bool inString = false;
     bool inComment = false;
@@ -65,7 +71,12 @@ std::vector<Token> Tokenizer::tokenize(std::istream& infile) {
 
     const auto updateLocation = [&]() {
         std::stringstream ss;
-        ss << "line: " << lineNumber << " column: " << charachterNumber;
+        if (filename != "") {
+            ss << "(file: " << filename << " ";
+        } else {
+            ss << "(";
+        }
+        ss << "line: " << lineNumber << " column: " << charachterNumber << ")";
         token.location = ss.str();
     };
 
@@ -163,19 +174,22 @@ std::string Tokenizer::reconstruct(std::vector<Token>& tokens) {
 
 std::string Token::getString() {
     using namespace estd::string_util;
-    if (dataType != Token::string || rawValue.size() < 2) throw std::runtime_error("Token is not a string at " + location);
+    if (dataType != Token::string || rawValue.size() < 2)
+        throw std::runtime_error("Token is not a string at " + location);
     return unescape_string(rawValue.substr(1, rawValue.size() - 2));
     // TODO: replace unescape with language specific unescape, for now use C++
     // strings limited to octal escapes and standard escapes such as \n
 }
 
 std::string Token::getEscapedString() {
-    if (dataType != Token::string || rawValue.size() < 2) throw std::runtime_error("Token is not a string at " + location);
+    if (dataType != Token::string || rawValue.size() < 2)
+        throw std::runtime_error("Token is not a string at " + location);
     return rawValue.substr(1, rawValue.size() - 2);
 }
 
 std::string Token::getComment() {
-    if (dataType != Token::comment || rawValue.size() < 2) throw std::runtime_error("Token is not a comment at " + location);
+    if (dataType != Token::comment || rawValue.size() < 2)
+        throw std::runtime_error("Token is not a comment at " + location);
     return rawValue.substr(1, rawValue.size() - 2);
 }
 
@@ -190,3 +204,15 @@ estd::BigDec Token::getNumber() {
 }
 
 std::string Token::getRaw() { return rawValue; }
+
+std::string Token::getValue() {
+    if (isName()) {
+        return getName();
+    } else if (isString()) {
+        return getString();
+    } else if (isNumber()) {
+        return estd::BigDec(rawValue).toString(); // normalize the format this way so 0.00 will be 0
+    } else {
+        throw std::runtime_error("Token is not a value at " + location);
+    }
+}

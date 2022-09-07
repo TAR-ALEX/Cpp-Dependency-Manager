@@ -36,7 +36,7 @@ CC_C=gcc
 # CC_CPP=clang++
 # CC_C=clang
 
-CCFLAGS=-Wall -O3  -I"./vendor/include"
+CCFLAGS=-Wall -O3  -I"./vendor/include" -DBOOST_REGEX_STANDALONE=0
 
 CPP_CCFlags=$(CCFLAGS) -std=c++17
 C_CCFlags=$(CCFLAGS)

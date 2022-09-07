@@ -131,7 +131,7 @@ Element ParseTreeBuilder::parseTuple(std::vector<Token>& tokens, size_t& i) {
         std::string name = "";
         Element statement;
         if (i + 1 < tokens.size() && tokens[i + 1].getRaw() == ":") {
-            if(!tokens[i].isName()) // TODO: support strings, only names are supported for now
+            if (!tokens[i].isName()) // TODO: support strings, only names are supported for now
                 throw std::runtime_error("unexpected tag in tuple at: " + tokens[i].location);
             name = tokens[i].getRaw();
             i += 2;
@@ -235,7 +235,8 @@ size_t Element::size() {
     return 0;
 }
 
-bool Element::onlyContains(std::set<std::string> names) { // TODO: make this work for statement (you can just use size currently)
+bool Element::onlyContains(std::set<std::string> names) {
+    // TODO: make this work for statement (you can just use size currently)
     if (tuple == nullptr) return false;
     for (size_t i = 0; i < this->tuple->size(); i++) {
         if (names.find(this->tuple[i].first) == names.end()) { return false; }

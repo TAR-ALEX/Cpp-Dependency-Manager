@@ -83,14 +83,8 @@ namespace omtl {
         void pushFront(std::string n, Element e);
         void pushBack(std::string n, Element e);
 
-        bool isTuple() {
-            Element& e = *this;
-            return e.tuple != nullptr;
-        }
-        bool isStatement() {
-            Element& e = *this;
-            return e.statement != nullptr;
-        }
+        bool isTuple() { return this->tuple != nullptr; }
+        bool isStatement() { return this->statement != nullptr; }
         bool isToken() {
             Element& e = getSingleElement();
             return e.value != nullptr;
@@ -100,6 +94,8 @@ namespace omtl {
         bool isComment() { return isToken() && getToken().isComment(); }
         bool isName() { return isToken() && getToken().isName(); }
         bool isNumber() { return isToken() && getToken().isNumber(); }
+        bool isValue() { return isToken() && getToken().isValue(); }
+        bool isRaw() { return isToken(); }
 
         Token getToken() {
             Element& e = getSingleElement();
@@ -110,6 +106,8 @@ namespace omtl {
         std::string getComment() { return getToken().getComment(); }
         std::string getName() { return getToken().getName(); }
         estd::BigDec getNumber() { return getToken().getNumber(); }
+        std::string getValue() { return getToken().getValue(); }
+        std::string getRaw() { return getToken().getRaw(); }
     };
 
     class ParseTreeBuilder {
@@ -123,6 +121,9 @@ namespace omtl {
         estd::ostream_proxy log{&std::cout};
         Element buildParseTree(std::vector<Token> vector);
     };
+
+    inline static Element Tuple(std::deque<std::pair<std::string, Element>> in = {}) { return Element(in); }
+    inline static Element Statement(std::deque<Element> in = {}) { return Element(in); }
 
 #include <omtl/ParseTree.ipp>
 } // namespace omtl

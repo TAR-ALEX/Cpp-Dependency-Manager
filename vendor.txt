@@ -2,8 +2,12 @@ git "https://github.com/TAR-ALEX/Semaphore.git" main "./include" "./vendor/inclu
 git "https://github.com/yhirose/cpp-httplib.git" v0.10.9 "./httplib.h" "./vendor/include",
 git "https://github.com/tmaklin/bxzstr.git" master "./include" "./vendor/include",
 
+(
 tar "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz" "./boost_1_79_0/boost/" "./vendor/include/boost/",
 tar "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz" "./boost_1_79_0/libs/regex/src/" "./vendor/src/boost/regex",
+)
+(commented out boost, no need to include all of it, can just be pulled from git in standalone mode)
+git "https://github.com/boostorg/regex.git" master "./include" "./vendor/include",
 
 git "https://github.com/TAR-ALEX/Thread-Safe-Queue.git" main "./include" "./vendor/include",
 git "https://github.com/TAR-ALEX/Tar-Cpp" master "./include" "./vendor/include",

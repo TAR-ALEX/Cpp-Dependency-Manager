@@ -354,6 +354,7 @@ namespace estd {
 			typename... Args,
 			typename = decltype(typename std::remove_all_extents<T>::type(std::declval<Args>()...))>
 		joint_ptr(Args&&... params) : Parent(new T(std::forward<Args>(params)...)) {}
+		joint_ptr(T* other) { this->reset(other); }
 
 		inline T& has_value() const { return this->get() != nullptr; }
 
