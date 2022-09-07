@@ -116,7 +116,7 @@ std::filesystem::path downloadFile(string url, std::filesystem::path location) {
 
 void parseGit(Element tokens) {
     if (tokens.size() != 5) {
-        cerr << "[WARNING] not enough arguments for git statement at " + tokens.location << endl;
+        cout << "[WARNING] not enough arguments for git statement at " + tokens.location << endl;
     }
 
     string sourceUrl = tokens[1]->getValue();
@@ -155,7 +155,7 @@ void parseGit(Element tokens) {
 
 void parseTar(Element tokens) {
     if (tokens.size() != 4) {
-        cerr << "[WARNING] not enough arguments for tar statement at " + tokens.location << endl;
+        cout << "[WARNING] not enough arguments for tar statement at " + tokens.location << endl;
     }
 
     string sourceUrl = tokens[1]->getValue();
@@ -183,33 +183,33 @@ void parseTar(Element tokens) {
 void parseDebInit(Element tokens) {
     std::vector<std::string> sources;
     if (tokens.size() < 2) {
-        cerr << "[WARNING] not enough arguments for deb-repo statement at " + tokens.location << endl;
+        cout << "[WARNING] not enough arguments for deb-repo statement at " + tokens.location << endl;
     }
     if (tokens[1]->isTuple()) {
         for (size_t i = 0; i < tokens[1]->size(); i++) {
             auto line = tokens[1][i];
             if (!line->isString()) {
-                cerr << "[WARNING] debian repository must be a string " + line->location << endl;
+                cout << "[WARNING] debian repository must be a string " + line->location << endl;
                 continue;
             }
             sources.push_back(line->getString());
         }
         debInstaller = new deb::Installer(sources);
     } else {
-        cerr << "[WARNING] bad arguments for deb-repo statement at " + tokens.location << endl;
+        cout << "[WARNING] bad arguments for deb-repo statement at " + tokens.location << endl;
     }
 }
 
 void parseDebMarkInstall(Element tokens) {
     if (tokens.size() < 2) {
-        cerr << "[WARNING] not enough arguments for deb-ignore statement at " + tokens.location << endl;
+        cout << "[WARNING] not enough arguments for deb-ignore statement at " + tokens.location << endl;
     }
     for (size_t i = 1; i < tokens.size(); i++) { debInstaller->markPreInstalled({tokens[i]->getValue()}); }
 }
 
 void parseDebInstall(Element tokens) {
     if (tokens.size() != 4) {
-        cerr << "[WARNING] not enough arguments for deb statement at " + tokens.location << endl;
+        cout << "[WARNING] not enough arguments for deb statement at " + tokens.location << endl;
     }
     cout << "Installing .deb package " << tokens[1]->getValue() << endl;
     debInstaller->install(
