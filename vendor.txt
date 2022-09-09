@@ -20,3 +20,4 @@ git "https://github.com/TAR-ALEX/clone_ptr_cpp.git" master "./include" "./vendor
 git "https://github.com/TAR-ALEX/big_numbers_cpp.git" master "./include" "./vendor/include",
 git "https://github.com/TAR-ALEX/estd-string-util.git" master "./include" "./vendor/include",
 git "https://github.com/TAR-ALEX/omtl_parser_cpp.git" master "./include" "./vendor/include",
+git "https://github.com/TAR-ALEX/estd_filesystem.git" master "./include" "./vendor/include",

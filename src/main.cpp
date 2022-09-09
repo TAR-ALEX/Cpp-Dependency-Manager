@@ -31,9 +31,9 @@
 #define CPPHTTPLIB_OPENSSL_SUPPORT
 #include "omtl/ParseTree.hpp"
 #include "omtl/Tokenizer.hpp"
-#include "tmpdir.h"
 #include <bxzstr.hpp>
 #include <deb-downloader.hpp>
+#include <estd/filesystem.hpp>
 #include <estd/ptr.hpp>
 #include <filesystem>
 #include <fstream>
@@ -51,7 +51,7 @@ using namespace estd::shortnames;
 namespace fs = std::filesystem;
 
 cptr<deb::Installer> debInstaller;
-cptr<TmpDir> temp;
+jptr<estd::files::TmpDir> temp;
 
 tuple<string, string, string> splitUrl(string url) {
     std::string delimiter = " ";
@@ -192,7 +192,7 @@ void parseDebInit(Element tokens) {
             }
             sources.push_back(line->getString());
         }
-        debInstaller = new deb::Installer(sources);
+        debInstaller = new deb::Installer(sources, temp);
     } else {
         cout << "[WARNING] bad arguments for deb-repo statement at " + tokens.location << endl;
     }
@@ -258,7 +258,7 @@ void parseBlock(Element pt) {
 
 int main() {
     srand(time(nullptr));
-    temp = new TmpDir();
+    temp = new estd::files::TmpDir();
     parseInclude(Element({Token("include"), Token("vendor.txt")}));
     return 0;
 }
