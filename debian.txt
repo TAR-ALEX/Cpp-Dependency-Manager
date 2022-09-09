@@ -7,3 +7,4 @@ deb-init [
     "deb http://archive.canonical.com/ubuntu/ focal partner",
     "deb http://ftp.us.debian.org/debian buster main ",
 ],
+deb-recurse-limit 3,

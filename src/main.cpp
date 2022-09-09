@@ -198,6 +198,14 @@ void parseDebInit(Element tokens) {
     }
 }
 
+void parseDebRecurseDepth(Element tokens) {
+    if (tokens.size() < 2) {
+        cout << "[WARNING] not enough arguments for deb-recurse-limit statement at " + tokens.location << endl;
+    }
+    int recurseDepth = int(tokens[1]->getNumber().toInt());
+    debInstaller->recursionLimit = recurseDepth;
+}
+
 void parseDebMarkInstall(Element tokens) {
     if (tokens.size() < 2) {
         cout << "[WARNING] not enough arguments for deb-ignore statement at " + tokens.location << endl;
@@ -246,6 +254,8 @@ void parseBlock(Element pt) {
             parseDebInit(pt[i].value());
         } else if (pt[i][0]->getName() == "deb-ignore") {
             parseDebMarkInstall(pt[i].value());
+        } else if (pt[i][0]->getName() == "deb-recurse-limit") {
+            parseDebRecurseDepth(pt[i].value());
         } else if (pt[i][0]->getName() == "deb") {
             parseDebInstall(pt[i].value());
         } else if (pt[i][0]->getName() == "include") {
