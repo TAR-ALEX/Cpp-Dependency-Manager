@@ -4,6 +4,7 @@
 
 class TmpDir {
 private:
+    std::filesystem::path iPath = "";
     inline static std::string generateUniqueTempDir() {
         while (true) {
             std::filesystem::path name = "." + estd::string_util::gen_random(10);
@@ -15,12 +16,12 @@ private:
     }
 
 public:
-    std::filesystem::path path = "";
-    TmpDir() { path = generateUniqueTempDir(); }
-    ~TmpDir() { std::filesystem::remove_all(path); }
+    TmpDir() { iPath = generateUniqueTempDir(); }
+    ~TmpDir() { std::filesystem::remove_all(iPath); }
 
-    void discard(){
-        for (const auto & entry : std::filesystem::directory_iterator(path))
-            std::filesystem::remove_all(entry);
+    std::filesystem::path path() { return iPath; }
+
+    void discard() {
+        for (const auto& entry : std::filesystem::directory_iterator(iPath)) std::filesystem::remove_all(entry);
     }
 };

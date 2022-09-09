@@ -207,22 +207,22 @@ estd::stack_ptr<Element> Element::operator[](std::string name) {
 
     if (e.tuple != nullptr) {
         for (size_t i = 0; i < e.tuple->size(); i++) {
-            if (e.tuple[i].first == name || name == std::to_string(i)) { return {e.tuple[i].second}; }
+            if (e.tuple[i].first == name || name == std::to_string(i)) { return e.tuple[i].second; }
         }
     }
-    return std::nullopt;
+    return nullptr;
 }
 
 estd::stack_ptr<Element> Element::operator[](size_t id) {
     Element& e = *this;
     if (e.tuple != nullptr) {
-        if (id >= e.tuple->size()) return std::nullopt;
+        if (id >= e.tuple->size()) return nullptr;
         return e.tuple[id].second;
     } else if (e.statement != nullptr) {
-        if (id >= e.statement->size()) return std::nullopt;
+        if (id >= e.statement->size()) return nullptr;
         return e.statement[id];
     }
-    return std::nullopt;
+    return nullptr;
 }
 
 size_t Element::size() {

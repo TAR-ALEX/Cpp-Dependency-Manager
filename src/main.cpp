@@ -131,13 +131,13 @@ void parseGit(Element tokens) {
     gitCall += sourceHash;
     gitCall += " '";
 
-    gitCall += (temp->path).string();
+    gitCall += (temp->path()).string();
     gitCall += "'";
 
     cout << gitCall << endl;
     if (system(gitCall.c_str()) != 0) { cout << "git clone for " << sourceUrl << " returned a non zero exit code\n"; }
 
-    const auto src = temp->path / source;
+    const auto src = temp->path() / source;
     const auto target = fs::current_path() / destination;
 
     cout << src.c_str() << endl << target.c_str() << endl;
@@ -162,9 +162,7 @@ void parseTar(Element tokens) {
     string source = tokens[2]->getValue();
     string destination = tokens[3]->getValue();
 
-    cout << sourceUrl << endl;
-
-    string filename = downloadFile(sourceUrl, temp->path);
+    string filename = downloadFile(sourceUrl, temp->path());
 
     bxz::ifstream zFile = bxz::ifstream(filename);
     tar::Reader r(zFile);
@@ -237,13 +235,24 @@ void parseInclude(Element cmd) {
 void parseBlock(Element pt) {
     for (size_t i = 0; i < pt.size(); i++) {
         if (pt[i]->size() <= 0) continue;
-        if (!pt[i][0]->isName()) continue;
-        if (pt[i][0]->getName() == "git") parseGit(pt[i].value());
-        if (pt[i][0]->getName() == "tar") parseTar(pt[i].value());
-        if (pt[i][0]->getName() == "deb-init") parseDebInit(pt[i].value());
-        if (pt[i][0]->getName() == "deb-ignore") parseDebMarkInstall(pt[i].value());
-        if (pt[i][0]->getName() == "deb") parseDebInstall(pt[i].value());
-        if (pt[i][0]->getName() == "include") parseInclude(pt[i].value());
+
+        if (!pt[i][0]->isName()) {
+            cout << "[WARNING] unsupported statement at " << pt[i][0]->location << endl;
+        } else if (pt[i][0]->getName() == "git") {
+            parseGit(pt[i].value());
+        } else if (pt[i][0]->getName() == "tar") {
+            parseTar(pt[i].value());
+        } else if (pt[i][0]->getName() == "deb-init") {
+            parseDebInit(pt[i].value());
+        } else if (pt[i][0]->getName() == "deb-ignore") {
+            parseDebMarkInstall(pt[i].value());
+        } else if (pt[i][0]->getName() == "deb") {
+            parseDebInstall(pt[i].value());
+        } else if (pt[i][0]->getName() == "include") {
+            parseInclude(pt[i].value());
+        } else {
+            cout << "[WARNING] unsupported statement at " << pt[i][0]->location << endl;
+        }
     }
 }
 
