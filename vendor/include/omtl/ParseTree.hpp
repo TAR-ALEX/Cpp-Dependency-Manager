@@ -76,8 +76,11 @@ namespace omtl {
         estd::stack_ptr<Element> operator[](std::string name);
         estd::stack_ptr<Element> operator[](size_t id);
 
+        Element slice(size_t left, size_t right = SIZE_MAX);
         Element popFront();
         Element popBack();
+        void popFront(size_t n);
+        void popBack(size_t n);
         void pushFront(Element e);
         void pushBack(Element e);
         void pushFront(std::string n, Element e);

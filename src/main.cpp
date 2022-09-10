@@ -29,8 +29,10 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define CPPHTTPLIB_OPENSSL_SUPPORT
+#include "conflict-detector.hpp"
 #include "omtl/ParseTree.hpp"
 #include "omtl/Tokenizer.hpp"
+#include "repo-cache.hpp"
 #include <bxzstr.hpp>
 #include <deb-downloader.hpp>
 #include <estd/filesystem.hpp>
@@ -39,19 +41,22 @@
 #include <fstream>
 #include <httplib.h>
 #include <iostream>
-#include <memory>
+#include <map>
 #include <tar/tar.hpp>
 #include <thread>
+#include <vector>
 
 using namespace std;
 using namespace httplib;
 using namespace omtl;
 using namespace estd::shortnames;
+using estd::files::Path;
 
 namespace fs = std::filesystem;
 
 cptr<deb::Installer> debInstaller;
 jptr<estd::files::TmpDir> temp;
+cptr<RepoCache> repoCache;
 
 tuple<string, string, string> splitUrl(string url) {
     std::string delimiter = " ";
@@ -114,68 +119,93 @@ std::filesystem::path downloadFile(string url, std::filesystem::path location) {
     return location / filename;
 }
 
-void parseGit(Element tokens) {
-    if (tokens.size() != 5) {
-        cout << "[WARNING] not enough arguments for git statement at " + tokens.location << endl;
+void parseMoveCache(Path cache, string repoId, Element tokens) {
+    if (tokens.size() != 2) {
+        cout << "[WARNING] not enough arguments for copy portion of statement at " + tokens.location << endl;
     }
+    string source = tokens[0]->getValue();
+    string destination = tokens[1]->getValue();
 
-    string sourceUrl = tokens[1]->getValue();
-    string sourceHash = tokens[2]->getValue();
-    string source = tokens[3]->getValue();
-    string destination = tokens[4]->getValue();
-
-    string gitCall = "git clone '";
-    gitCall += sourceUrl;
-    gitCall += "' ";
-    gitCall += "-b ";
-    gitCall += sourceHash;
-    gitCall += " '";
-
-    gitCall += (temp->path()).string();
-    gitCall += "'";
-
-    cout << gitCall << endl;
-    if (system(gitCall.c_str()) != 0) { cout << "git clone for " << sourceUrl << " returned a non zero exit code\n"; }
-
-    const auto src = temp->path() / source;
+    const auto src = cache / source;
     const auto target = fs::current_path() / destination;
 
     cout << src.c_str() << endl << target.c_str() << endl;
 
-    if (fs::is_directory(source)) {
-        fs::create_directories(target);
-    } else {
-        fs::create_directories(target.parent_path());
-    }
-
-    fs::copy(src, target, fs::copy_options::overwrite_existing | fs::copy_options::recursive);
+    copyRepo(repoId, src, target);
     cout << endl;
-    temp->discard();
+}
+
+Path parseAheadCommonRoot(Element tokens) {
+    if (tokens.size() != 2) {
+        cout << "[WARNING] not enough arguments for copy portion of statement at " + tokens.location << endl;
+    }
+    string source = tokens[0]->getValue();
+    string destination = tokens[1]->getValue();
+
+    return Path(source).lexically_normal();
+}
+
+void parseGit(Element tokens) {
+    if (tokens.size() < 3) { cout << "[WARNING] not enough arguments for git statement at " + tokens.location << endl; }
+
+    string sourceUrl = tokens[1]->getValue();
+    string sourceHash = tokens[2]->getValue();
+    string repoId = "git " + sourceUrl + " " + sourceHash;
+
+    Path cache;
+    if (!repoCache->exists(repoId)) {
+        cache = repoCache->access(repoId);
+
+        string gitCall = "git clone '";
+        gitCall += sourceUrl;
+        gitCall += "' ";
+        gitCall += "-b ";
+        gitCall += sourceHash;
+        gitCall += " '";
+
+        gitCall += cache.string();
+        gitCall += "'";
+
+        cout << gitCall << endl;
+        if (system(gitCall.c_str()) != 0) {
+            cout << "git clone for " << sourceUrl << " returned a non zero exit code\n";
+        }
+    }
+    cache = repoCache->access(repoId);
+
+    parseMoveCache(cache, repoId, tokens.slice(3));
 }
 
 void parseTar(Element tokens) {
-    if (tokens.size() != 4) {
-        cout << "[WARNING] not enough arguments for tar statement at " + tokens.location << endl;
-    }
+    if (tokens.size() < 2) { cout << "[WARNING] not enough arguments for tar statement at " + tokens.location << endl; }
 
     string sourceUrl = tokens[1]->getValue();
-    string source = tokens[2]->getValue();
-    string destination = tokens[3]->getValue();
+    string repoId = "tar " + sourceUrl;
 
-    string filename = downloadFile(sourceUrl, temp->path());
+    Path cache;
+
+    // if (!repoCache->exists(repoId)) {
+    cache = repoCache->access(repoId);
+
+    cout << "Downloading .tar package " << sourceUrl << endl;
+
+    string filename = downloadFile(sourceUrl, temp->path() / "tar");
 
     bxz::ifstream zFile = bxz::ifstream(filename);
     tar::Reader r(zFile);
 
-    const auto target = fs::current_path() / destination;
+    cout << "Extracting .tar package " << sourceUrl << endl;
 
-    cout << "Installing .tar package " << tokens[1]->getValue() << endl;
+    Path common = parseAheadCommonRoot(tokens.slice(2));
+    r.extractPath(common, cache / common);
 
-    r.extractPath(source, target);
-
-    cout << endl;
     zFile.close();
-    temp->discard();
+
+    std::filesystem::remove_all(filename);
+    // }
+    // cache = repoCache->access(repoId);
+
+    parseMoveCache(cache, repoId, tokens.slice(2));
 }
 
 void parseDebInit(Element tokens) {
@@ -192,7 +222,7 @@ void parseDebInit(Element tokens) {
             }
             sources.push_back(line->getString());
         }
-        debInstaller = new deb::Installer(sources, temp);
+        debInstaller = new deb::Installer(sources, new TmpDir(temp->path()));
     } else {
         cout << "[WARNING] bad arguments for deb-repo statement at " + tokens.location << endl;
     }
@@ -214,17 +244,23 @@ void parseDebMarkInstall(Element tokens) {
 }
 
 void parseDebInstall(Element tokens) {
-    if (tokens.size() != 4) {
-        cout << "[WARNING] not enough arguments for deb statement at " + tokens.location << endl;
-    }
+    if (tokens.size() < 2) { cout << "[WARNING] not enough arguments for deb statement at " + tokens.location << endl; }
+    string repoId = "deb " + tokens[1]->getValue();
+
+    Path cache;
+
+    // if (!repoCache->exists(repoId)) {
+    cache = repoCache->access(repoId);
+
+    Path common = parseAheadCommonRoot(tokens.slice(2));
+
     cout << "Installing .deb package " << tokens[1]->getValue() << endl;
-    debInstaller->install(
-        tokens[1]->getValue(),
-        {
-            {tokens[2]->getValue(), tokens[3]->getValue()},
-        }
-    );
+    debInstaller->install(tokens[1]->getValue(), {{common, cache / common}});
     debInstaller->clearInstalled();
+    // }
+    // cache = repoCache->access(repoId);
+
+    parseMoveCache(cache, repoId, tokens.slice(2));
 }
 
 void parseBlock(Element pt);
@@ -235,7 +271,7 @@ void parseInclude(Element cmd) {
 
     auto pt = ptb.buildParseTree(tkn.tokenize(cmd[1]->getValue()));
 
-    temp->discard();
+    // temp->discard();
 
     parseBlock(pt);
 }
@@ -266,9 +302,19 @@ void parseBlock(Element pt) {
     }
 }
 
+
+
 int main() {
-    srand(time(nullptr));
-    temp = new estd::files::TmpDir();
-    parseInclude(Element({Token("include"), Token("vendor.txt")}));
+    try {
+        srand(time(nullptr));
+        temp = new estd::files::TmpDir();
+        repoCache = new RepoCache(temp);
+        parseInclude(Element({Token("include"), Token("vendor.txt")}));
+
+    } catch (std::exception& e) {
+        cout << "[ERROR] ";
+        cout << e.what() << endl;
+    }
+
     return 0;
 }

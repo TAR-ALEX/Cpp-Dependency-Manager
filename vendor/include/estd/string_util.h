@@ -13,6 +13,17 @@ namespace estd {
             }
             return str;
         }
+
+        inline static std::string replacePrefix(std::string str, const std::string& from, const std::string& to) {
+            size_t start_pos = 0;
+            if ((start_pos = str.rfind(from, 0)) != std::string::npos) { str.replace(start_pos, from.length(), to); }
+            return str;
+        }
+
+        inline static bool hasPrefix(std::string str, const std::string& from){
+            return str.rfind(from, 0) != std::string::npos;
+        }
+
         inline static std::string indent(std::string input, std::string indentation) {
             std::string output = "";
             for (size_t i = 0; i < input.length(); i++) {

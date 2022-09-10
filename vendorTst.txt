@@ -12,7 +12,10 @@ git "https://github.com/TAR-ALEX/Ar-Cpp.git" master "./include" "./vendor2/inclu
 git "https://github.com/TAR-ALEX/ThreadPool.git" main "./include" "./vendor2/include",
 git "https://github.com/TAR-ALEX/cpp-deb-installer.git" master "./include" "./vendor2/include",
 
-tar "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz" "./boost_1_79_0/boost.png" "./vendor2/include/",
+git "https://github.com/TAR-ALEX/Semaphore.git" main "./include" "./vendor2/include",
+
+
+tar "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz" "./boost_1_79_0/boost.png" "./vendor2/include/boost.png",
 
 
 deb "libboost-all-dev" "./usr/lib/x86_64-linux-gnu" "./vendor2/lib/",

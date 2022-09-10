@@ -304,3 +304,19 @@ void Element::pushBack(std::string n, Element e) {
     if (tuple != nullptr) { tuple->push_back({n, e}); }
     if (statement != nullptr) { statement->push_back(e); }
 }
+
+void Element::popBack(size_t n) {
+    for (size_t i = 0; i < n; i++) popBack();
+}
+
+void Element::popFront(size_t n) {
+    for (size_t i = 0; i < n; i++) popFront();
+}
+
+Element Element::slice(size_t left, size_t right) {
+    Element copy = *this;
+    if (tuple == nullptr && statement == nullptr) throw std::runtime_error("No elements to slice");
+    if (right < size()) copy.popBack(size() - right);
+    copy.popFront(left);
+    return copy;
+}
