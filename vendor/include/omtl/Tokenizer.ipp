@@ -154,12 +154,18 @@ std::vector<Token> Tokenizer::tokenize(std::istream& infile, std::string filenam
 
     if (storeCommentsAsPadding) {
         std::vector<Token> tokensNoComments;
+        std::string lastPadding = "";
+
         for (size_t i = 0; i < tokens.size(); i++) {
-            if (tokens[i].dataType != Token::comment) tokensNoComments.push_back(tokens[i]);
-            else
-                tokensNoComments.back().paddingAfter +=
-                    tokens[i].paddingBefore + tokens[i].rawValue + tokens[i].paddingAfter;
+            Token t = tokens[i];
+            t.paddingBefore = lastPadding + t.paddingBefore;
+            lastPadding = "";
+            if (t.dataType != Token::comment) tokensNoComments.push_back(t);
+            else { lastPadding = t.paddingBefore + t.rawValue + t.paddingAfter; }
         }
+
+        if (!tokensNoComments.empty()) tokensNoComments.back().paddingAfter = lastPadding;
+
         return tokensNoComments;
     }
 

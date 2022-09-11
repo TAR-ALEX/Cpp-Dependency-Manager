@@ -33,7 +33,6 @@
 #include <estd/ptr.hpp>
 #include <estd/string_util.h>
 #include <filesystem>
-#include <iostream>
 #include <vector>
 
 namespace estd {
@@ -52,6 +51,20 @@ namespace estd {
             Path& operator=(Path&& p) { return (*this = std::filesystem::path(p)); }
             Path& operator=(const std::filesystem::path& p) { return *this = p.string(), *this; }
             Path& operator=(std::filesystem::path&& p) { return *this = p.string(), *this; }
+
+            Path normalize() {
+                Path tmp = this->lexically_normal();
+                if (tmp == "." || tmp == "./") { tmp = ""; }
+                return tmp;
+            }
+
+            // tells if this path is a parent of the passed path if(other is a tree in *this) (only for directories)
+            bool contains(Path& other) {
+                Path left = Path((*this) / "").normalize();
+                Path right = Path(other / "").normalize();
+
+                return estd::string_util::hasPrefix(right, left);
+            }
 
             std::pair<Path, Path> splitPrefix() {
                 size_t mid_pos = 0;
@@ -89,14 +102,21 @@ namespace estd {
                 to = ("." / to).lexically_normal();
 
                 bool pathIsDir = !path.has_filename();
+                bool fromIsDir = !from.has_filename();
+                bool toIsDir = !to.has_filename();
 
                 to = (to / "").lexically_normal();
                 from = (from / "").lexically_normal();
                 path = (path / "").lexically_normal();
 
+                if (toIsDir && !fromIsDir) { // from is a file && to is a dir
+                    to = to.replace_filename(from.parent_path().filename());
+                    to = (to / "").lexically_normal();
+                }
+
                 if (from == "" || from == "." || from == "./") {
                     Path result = (to / path).lexically_normal();
-                    if (!pathIsDir) return result.splitSuffix().first;
+                    if (!pathIsDir) return result.splitSuffix().first; // remove slash at end
                     return result;
                 }
 
@@ -109,6 +129,9 @@ namespace estd {
                 return result;
             }
         };
+        // sample error:
+        // filesystem error: cannot copy: No such file or directory [...] [...]
+
 
         class TmpDir {
         private:
@@ -136,13 +159,22 @@ namespace estd {
             }
         };
 
+        template <bool recursive = true, bool overwrite = true>
+        void copy(Path from, Path to) {
+            if (!std::filesystem::is_directory(from)) {
+                std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing);
+            } else {
+                if (!std::filesystem::exists(to) || overwrite) {
+                    std::filesystem::copy_file(from, to, std::filesystem::copy_options::overwrite_existing);
+                }
+            }
+        }
+
         // returns the files that could not be written to
         template <bool recursive = true>
         void copyNoOverwrite(Path from, Path to, std::vector<Path>& visited) {
-            //std::cout << "copyNoOverwrite " << from << " -> " << to << "\n";
             if (!std::filesystem::is_directory(from)) {
                 if (!std::filesystem::exists(to)) {
-                    std::cout << "cp " << from << " -> " << to << "\n";
                     std::filesystem::copy_file(from, to);
                 } else {
                     visited.push_back(to);

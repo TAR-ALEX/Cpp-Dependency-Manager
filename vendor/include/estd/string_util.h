@@ -20,8 +20,8 @@ namespace estd {
             return str;
         }
 
-        inline static bool hasPrefix(std::string str, const std::string& from){
-            return str.rfind(from, 0) != std::string::npos;
+        inline static bool hasPrefix(std::string str, const std::string& prefix){
+            return str.rfind(prefix, 0) != std::string::npos;
         }
 
         inline static std::string indent(std::string input, std::string indentation) {
