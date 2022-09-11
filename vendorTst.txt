@@ -1,7 +1,11 @@
+git "https://github.com/yhirose/cpp-httplib.git" v0.10.9 "./httplib.h" "./vendor2/include/",
+git "https://github.com/tmaklin/bxzstr.git" master "./include" "./vendor2/include",
+
+(
 include debian.txt,
 
-git (comment) "https://github.com/TAR-ALEX/Semaphore.git" main "./include" "./vendor2/include",
-git "https://github.com/yhirose/cpp-httplib.git" v0.10.9 "./httplib.h" "./vendor2/include",
+git "https://github.com/TAR-ALEX/Semaphore.git" main "./include" "./vendor2/include",
+git "https://github.com/yhirose/cpp-httplib.git" v0.10.9 "./httplib.h" "./vendor/include/httplib.h",
 git "https://github.com/tmaklin/bxzstr.git" master "./include" "./vendor2/include",
 git "https://github.com/TAR-ALEX/Thread-Safe-Queue.git" main "./include" "./vendor2/include",
 
@@ -19,4 +23,11 @@ tar "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79
 
 
 deb "libboost-all-dev" "./usr/lib/x86_64-linux-gnu" "./vendor2/lib/",
+)
+
+tar "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz" "./boost_1_79_0/boost/" "./vendor2/include/boost/",
+tar "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz" "./boost_1_79_0/libs/regex/src/" "./vendor2/src/boost/regex",
+
+tar "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz" "./boost_1_79_0/boost/algorithm" "./vendor2/include-cpy/boost/algorithm",
+
 

@@ -86,19 +86,16 @@ tuple<string, string, string> splitUrl(string url) {
     return make_tuple(scheme, host, path);
 }
 
-std::filesystem::path downloadFile(string url, std::filesystem::path location) {
+Path downloadFile(string url, Path location) {
     std::string scheme = "";
     std::string host = "";
     std::string path = "";
 
     tie(scheme, host, path) = splitUrl(url);
 
-    std::filesystem::path extractFilename = path;
-    std::filesystem::path filename = extractFilename.filename();
+    fs::create_directories(location.parent_path());
 
-    fs::create_directories(location);
-
-    ofstream file(location / filename);
+    ofstream file(location);
 
     httplib::Client cli((scheme + host).c_str());
     cli.set_follow_location(true);
@@ -116,7 +113,7 @@ std::filesystem::path downloadFile(string url, std::filesystem::path location) {
     );
 
     file.close();
-    return location / filename;
+    return location;
 }
 
 void parseMoveCache(Path cache, string repoId, Element tokens) {
@@ -142,7 +139,7 @@ Path parseAheadCommonRoot(Element tokens) {
     string source = tokens[0]->getValue();
     string destination = tokens[1]->getValue();
 
-    return Path(source).lexically_normal();
+    return Path(source).normalize();
 }
 
 void parseGit(Element tokens) {
@@ -152,10 +149,7 @@ void parseGit(Element tokens) {
     string sourceHash = tokens[2]->getValue();
     string repoId = "git " + sourceUrl + " " + sourceHash;
 
-    Path cache;
-    if (!repoCache->exists(repoId)) {
-        cache = repoCache->access(repoId);
-
+    Path cache = repoCache->createDir(repoId, "", [&](Path cache) {
         string gitCall = "git clone '";
         gitCall += sourceUrl;
         gitCall += "' ";
@@ -170,8 +164,7 @@ void parseGit(Element tokens) {
         if (system(gitCall.c_str()) != 0) {
             cout << "git clone for " << sourceUrl << " returned a non zero exit code\n";
         }
-    }
-    cache = repoCache->access(repoId);
+    });
 
     parseMoveCache(cache, repoId, tokens.slice(3));
 }
@@ -182,28 +175,26 @@ void parseTar(Element tokens) {
     string sourceUrl = tokens[1]->getValue();
     string repoId = "tar " + sourceUrl;
 
-    Path cache;
-
-    // if (!repoCache->exists(repoId)) {
-    cache = repoCache->access(repoId);
-
-    cout << "Downloading .tar package " << sourceUrl << endl;
-
-    string filename = downloadFile(sourceUrl, temp->path() / "tar");
-
-    bxz::ifstream zFile = bxz::ifstream(filename);
-    tar::Reader r(zFile);
-
-    cout << "Extracting .tar package " << sourceUrl << endl;
-
     Path common = parseAheadCommonRoot(tokens.slice(2));
-    r.extractPath(common, cache / common);
 
-    zFile.close();
+    Path cache = repoCache->createDir(repoId, common, [&](Path cache) {
+        string filename = repoCache->getFilePath(repoId);
 
-    std::filesystem::remove_all(filename);
-    // }
-    // cache = repoCache->access(repoId);
+        if (!std::filesystem::exists(filename)) {
+            cout << "Downloading .tar package " << sourceUrl << endl;
+            downloadFile(sourceUrl, repoCache->getFilePath(repoId));
+        }
+
+        bxz::ifstream zFile = bxz::ifstream(filename);
+        tar::Reader r(zFile);
+
+        cout << "Extracting .tar package " << sourceUrl << endl;
+
+
+        r.extractPath(common, cache / common);
+
+        zFile.close();
+    });
 
     parseMoveCache(cache, repoId, tokens.slice(2));
 }
@@ -247,18 +238,14 @@ void parseDebInstall(Element tokens) {
     if (tokens.size() < 2) { cout << "[WARNING] not enough arguments for deb statement at " + tokens.location << endl; }
     string repoId = "deb " + tokens[1]->getValue();
 
-    Path cache;
-
-    // if (!repoCache->exists(repoId)) {
-    cache = repoCache->access(repoId);
-
     Path common = parseAheadCommonRoot(tokens.slice(2));
 
-    cout << "Installing .deb package " << tokens[1]->getValue() << endl;
-    debInstaller->install(tokens[1]->getValue(), {{common, cache / common}});
-    debInstaller->clearInstalled();
-    // }
-    // cache = repoCache->access(repoId);
+    Path cache = repoCache->createDir(repoId, common, [&](Path cache) {
+        cache = repoCache->access(repoId);
+        cout << "Installing .deb package " << tokens[1]->getValue() << endl;
+        debInstaller->install(tokens[1]->getValue(), {{common, cache / common}});
+        debInstaller->clearInstalled();
+    });
 
     parseMoveCache(cache, repoId, tokens.slice(2));
 }
@@ -270,8 +257,6 @@ void parseInclude(Element cmd) {
     ParseTreeBuilder ptb;
 
     auto pt = ptb.buildParseTree(tkn.tokenize(cmd[1]->getValue()));
-
-    // temp->discard();
 
     parseBlock(pt);
 }
