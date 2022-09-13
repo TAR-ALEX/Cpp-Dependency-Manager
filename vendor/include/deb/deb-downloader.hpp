@@ -355,8 +355,20 @@ namespace deb {
             auto controlFile = controlTar.open("control");
             controlString = streamToString(controlFile);
 
+            // https://stackoverflow.com/a/3177252
+            const auto combineVectors = [](std::vector<std::string>& A, std::vector<std::string> B){
+                std::vector<std::string> AB;
+                AB.reserve( A.size() + B.size() ); // preallocate memory
+                AB.insert( AB.end(), A.begin(), A.end() );
+                AB.insert( AB.end(), B.begin(), B.end() );
+                return AB;
+            };
+
             // cout << "\n" << controlString << "\n";
-            auto deps = getFields(controlString);
+            auto deps = getFields(controlString, "Depends");
+            deps = combineVectors(deps, getFields(controlString, "Recommends"));
+            deps = combineVectors(deps, getFields(controlString, "Suggests"));
+            deps = combineVectors(deps, getFields(controlString, "Pre-Depends"));
 
             for (auto dep : deps) {
                 trm.schedule([this, dep, locations, recursionDepth]() {
@@ -365,28 +377,6 @@ namespace deb {
             }
         }
 
-        //https://stackoverflow.com/a/440240
-        std::string gen_random(const int len) {
-            static const char alphanum[] = "0123456789"
-                                           "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                           "abcdefghijklmnopqrstuvwxyz";
-            std::string tmp_s;
-            tmp_s.reserve(len);
-
-            for (int i = 0; i < len; ++i) { tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)]; }
-
-            return tmp_s;
-        }
-
-        std::string generateUniqueTempDir() {
-            while (true) {
-                std::filesystem::path name = "." + gen_random(10);
-                if (!std::filesystem::exists(name)) {
-                    std::filesystem::create_directories(name);
-                    return name.string();
-                }
-            }
-        }
 
     public:
         std::string architecture = "binary-amd64";
@@ -394,7 +384,7 @@ namespace deb {
         int recursionLimit = 9999;
         bool throwOnFailedDependency = true;
         bool extractHardLinksAsCopies = true;
-        bool extractSoftLinksAsCopies = true;
+        bool extractSoftLinksAsCopies = true; // dont do this, there can be links among different packages like libX.so linking to libX.so.5.1.1
 
         Installer() {}
 

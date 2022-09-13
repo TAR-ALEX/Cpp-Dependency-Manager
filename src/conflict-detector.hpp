@@ -21,17 +21,18 @@ namespace {
 
     std::vector<std::pair<Path, Path>> getListOfTransfered(Path from, Path to) {
         std::vector<std::pair<Path, Path>> result;
-
-        if (fs::is_directory(from)) {
-            for (const auto& entry : std::filesystem::recursive_directory_iterator(from)) {
-                Path f = entry.path().lexically_normal();
+        if (fs::exists(from)) {
+            if (fs::is_directory(from)) {
+                for (const auto& entry : std::filesystem::recursive_directory_iterator(from)) {
+                    Path f = entry.path().lexically_normal();
+                    Path t = *f.replacePrefix(from, to);
+                    result.push_back({f, t});
+                }
+            } else {
+                Path f = from.lexically_normal();
                 Path t = *f.replacePrefix(from, to);
                 result.push_back({f, t});
             }
-        } else {
-            Path f = from.lexically_normal();
-            Path t = *f.replacePrefix(from, to);
-            result.push_back({f, t});
         }
         return result;
     }
@@ -55,7 +56,7 @@ void copyRepo(std::string repo, Path source, Path destination) {
             continue;
         }
         fs::create_directories(to.parent_path());
-        fs::copy(from, to, fs::copy_options::overwrite_existing);
+        fs::copy(from, to, fs::copy_options::overwrite_existing | fs::copy_options::copy_symlinks);
         fileMap[to] = repo;
     }
 }

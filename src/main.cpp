@@ -34,7 +34,7 @@
 #include "omtl/Tokenizer.hpp"
 #include "repo-cache.hpp"
 #include <bxzstr.hpp>
-#include <deb-downloader.hpp>
+#include <deb/deb-downloader.hpp>
 #include <estd/filesystem.hpp>
 #include <estd/ptr.hpp>
 #include <filesystem>
@@ -214,6 +214,7 @@ void parseDebInit(Element tokens) {
             sources.push_back(line->getString());
         }
         debInstaller = new deb::Installer(sources, new TmpDir(temp->path()));
+        debInstaller->throwOnFailedDependency = false;
     } else {
         cout << "[WARNING] bad arguments for deb-repo statement at " + tokens.location << endl;
     }
@@ -263,26 +264,31 @@ void parseInclude(Element cmd) {
 
 void parseBlock(Element pt) {
     for (size_t i = 0; i < pt.size(); i++) {
-        if (pt[i]->size() <= 0) continue;
+        try {
+            if (pt[i]->size() <= 0) continue;
 
-        if (!pt[i][0]->isName()) {
-            cout << "[WARNING] unsupported statement at " << pt[i][0]->location << endl;
-        } else if (pt[i][0]->getName() == "git") {
-            parseGit(pt[i].value());
-        } else if (pt[i][0]->getName() == "tar") {
-            parseTar(pt[i].value());
-        } else if (pt[i][0]->getName() == "deb-init") {
-            parseDebInit(pt[i].value());
-        } else if (pt[i][0]->getName() == "deb-ignore") {
-            parseDebMarkInstall(pt[i].value());
-        } else if (pt[i][0]->getName() == "deb-recurse-limit") {
-            parseDebRecurseDepth(pt[i].value());
-        } else if (pt[i][0]->getName() == "deb") {
-            parseDebInstall(pt[i].value());
-        } else if (pt[i][0]->getName() == "include") {
-            parseInclude(pt[i].value());
-        } else {
-            cout << "[WARNING] unsupported statement at " << pt[i][0]->location << endl;
+            if (!pt[i][0]->isName()) {
+                cout << "[WARNING] unsupported statement at " << pt[i][0]->location << endl;
+            } else if (pt[i][0]->getName() == "git") {
+                parseGit(pt[i].value());
+            } else if (pt[i][0]->getName() == "tar") {
+                parseTar(pt[i].value());
+            } else if (pt[i][0]->getName() == "deb-init") {
+                parseDebInit(pt[i].value());
+            } else if (pt[i][0]->getName() == "deb-ignore") {
+                parseDebMarkInstall(pt[i].value());
+            } else if (pt[i][0]->getName() == "deb-recurse-limit") {
+                parseDebRecurseDepth(pt[i].value());
+            } else if (pt[i][0]->getName() == "deb") {
+                parseDebInstall(pt[i].value());
+            } else if (pt[i][0]->getName() == "include") {
+                parseInclude(pt[i].value());
+            } else {
+                cout << "[WARNING] unsupported statement at " << pt[i][0]->location << endl;
+            }
+        } catch (std::exception& e) {
+            cout << "[ERROR] ";
+            cout << e.what() << endl;
         }
     }
 }
