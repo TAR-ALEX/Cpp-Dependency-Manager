@@ -52,8 +52,6 @@ using namespace omtl;
 using namespace estd::shortnames;
 using estd::files::Path;
 
-namespace fs = std::filesystem;
-
 cptr<deb::Installer> debInstaller;
 jptr<estd::files::TmpDir> temp;
 cptr<RepoCache> repoCache;
@@ -93,7 +91,7 @@ Path downloadFile(string url, Path location) {
 
     tie(scheme, host, path) = splitUrl(url);
 
-    fs::create_directories(location.parent_path());
+    fs::createDirectories(location.splitSuffix().first);
 
     ofstream file(location);
 
@@ -124,9 +122,9 @@ void parseMoveCache(Path cache, string repoId, Element tokens) {
     string destination = tokens[1]->getValue();
 
     const auto src = cache / source;
-    const auto target = fs::current_path() / destination;
+    const auto target = fs::currentPath() / destination;
 
-    cout << src.c_str() << endl << target.c_str() << endl;
+    cout << src.string() << endl << target.string() << endl;
 
     copyRepo(repoId, src, target);
     cout << endl;
