@@ -176,10 +176,10 @@ namespace tar {
 			auto chunkToUnix = [](uint16_t chunk) {
 				chunk &= 7;// 7 in octal
 				switch (chunk) {
-					case 0: return 0; // none
-					case 1: return 7; // all
-					case 2: return 6; // read and write
-					case 3: return 4; // read only
+					case 0: return 0;// none
+					case 1: return 7;// all
+					case 2: return 6;// read and write
+					case 3: return 4;// read only
 				}
 				return 6;
 			};
@@ -348,9 +348,7 @@ namespace tar {
 		}
 
 
-		void extractSoftlinks(
-			Path path, Path destination, Path origExtPath, std::set<std::string>& visited, Path lastSoftlink = ""
-		) {
+		void extractSoftlinks(Path path, Path destination, Path origExtPath, std::set<std::string>& visited) {
 			if (isExistingDirectory(path)) {
 				path = path.addEmptySuffix();
 				estd::files::createDirectories(destination);
@@ -378,8 +376,7 @@ namespace tar {
 
 			if (!softLinks.count(path.removeEmptySuffix())) {
 				if (!paths.count(path)) {
-					if (throwOnBrokenSoftlinks)
-						throw std::runtime_error("Tar: broken softlink points to " + path.string());
+					if (throwOnUnsupported) throw std::runtime_error("Tar: broken softlink points to " + path.string());
 				} else if (throwOnUnsupported) {
 					throw std::runtime_error("Tar: unknown entry type " + path.string());
 				}
@@ -400,15 +397,22 @@ namespace tar {
 			Path rootLinkedPath = (path.getAntiSuffix() / linkedPath).normalize().removeEmptySuffix();
 			bool isExtracted = origExtPath.contains(rootLinkedPath);
 
-			if (extractSoftLinksAsCopies) {
-				extractSoftlinks(rootLinkedPath, destination, origExtPath, visited, path);
-				return;
+			// if extracting as a copy, or what it points to is not extracted
+			if (extractSoftLinksAsCopies || !isExtracted) {
+				// if link is real
+				if (isExistingDirectory(rootLinkedPath) || isExistingFile(rootLinkedPath)) {
+					// extract as copies
+					extractSoftlinks(rootLinkedPath, destination, origExtPath, visited);
+					return;
+				}
 			}
-			if (!isExtracted) {
+			if (!isExtracted) {// if what it points to is not extracted
 				if (skipOnBrokenSoftlinks) {
 					return;
 				} else if (throwOnBrokenSoftlinks) {
-					throw std::runtime_error("Tar: softlink " + lastSoftlink + " is broken and points to " + path);
+					throw std::runtime_error(
+						"Tar: softlink " + rootLinkedPath + " is broken and points to " + linkedPath
+					);
 				}
 			}
 
