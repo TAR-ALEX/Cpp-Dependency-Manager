@@ -336,6 +336,7 @@ namespace deb {
             dataTar.extractSoftLinksAsCopies = extractSoftLinksAsCopies;
             dataTar.throwOnInfiniteRecursion = false;
             dataTar.throwOnBrokenSoftlinks = false;
+            dataTar.permissionMask = permissionMask;
 
             for (auto [source, destination] : locations) { dataTar.extractPath(source, destination); }
 
@@ -385,6 +386,7 @@ namespace deb {
         bool throwOnFailedDependency = true;
         bool extractHardLinksAsCopies = true;
         bool extractSoftLinksAsCopies = true; // dont do this, there can be links among different packages like libX.so linking to libX.so.5.1.1
+        uint16_t permissionMask = 0777;
 
         Installer() {}
 
