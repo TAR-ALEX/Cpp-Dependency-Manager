@@ -356,7 +356,12 @@ namespace tar {
 				for (Path subpath : paths) {
 					if (path.contains(subpath) && subpath != path) {
 						Path subdestination = subpath.replacePrefix(path, destination).value();
-						extractSoftlinks(subpath, subdestination, origExtPath, visited);
+						if (!isExistingDirectory(subpath)) {
+							extractSoftlinks(subpath, subdestination, origExtPath, visited);
+						} else {
+							estd::files::createDirectories(subdestination);
+							estd::files::setPermissions(subdestination, permissions[subpath]);
+						}
 					}
 				}
 				return;

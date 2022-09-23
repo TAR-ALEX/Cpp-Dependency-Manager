@@ -34,6 +34,8 @@
 #include <estd/string_util.h>
 #include <exception>
 #include <filesystem>
+#include <functional>
+#include <set>
 #include <vector>
 
 namespace estd {
@@ -203,6 +205,16 @@ namespace estd {
             };
         } // namespace
 
+        inline bool isDirectory(Path p);
+        inline Path followSoftLink(Path p);
+        inline bool isSoftLink(Path p);
+        inline bool isBlockFile(Path p);
+        inline bool isCharacterFile(Path p);
+        inline bool isEmptry(Path p);
+        inline bool isFIFO(Path p);
+        inline bool isOther(Path p);
+        inline bool isFile(Path p);
+
         enum CopyOptions : uint64_t {
             none = 0,
 
@@ -219,8 +231,6 @@ namespace estd {
             copyAsSoftLinks = 1 << 7,
             copyAsHardLinks = 1 << 8
         };
-
-        inline bool isSoftDirectory(Path p);
 
         class DirectoryEntry : public std::filesystem::directory_entry {
         public:
@@ -244,7 +254,7 @@ namespace estd {
                     e.assign(e.path().addEmptySuffix());
                     return e;
                 } else if (e.is_symlink()) {
-                    if (isSoftDirectory(e.path())) {
+                    if (isDirectory(e.path())) {
                         e.assign(e.path().addEmptySuffix());
                         return e;
                     } else {
@@ -286,7 +296,7 @@ namespace estd {
                     e.assign(e.path().addEmptySuffix());
                     return e;
                 } else if (e.is_symlink()) {
-                    if (isSoftDirectory(e.path())) {
+                    if (isDirectory(e.path())) {
                         e.assign(e.path().addEmptySuffix());
                         return e;
                     } else {
@@ -335,33 +345,50 @@ namespace estd {
         inline bool isFIFO(Path p) { return std::filesystem::is_fifo(p); }
         inline bool isOther(Path p) { return std::filesystem::is_other(p); }
         inline bool isFile(Path p) { return std::filesystem::is_regular_file(p); }
+
         // returns if it is a directory or a softlink to a directory
         inline bool isSoftDirectory(Path p) {
-            if (isDirectory(p)) return true;
-            if (isSoftLink(p)) {
-                Path link = followSoftLink(p);
-                if (exists(link)) return isSoftDirectory(p);
-                return !link.hasSuffix();
-            }
-            return false;
+            std::function<bool(Path, std::set<Path>&)> iSD;
+            iSD = [&iSD](Path p, std::set<Path>& visited) {
+                if (visited.count(p)) return false;
+                visited.insert(p);
+
+                if (isFile(p)) return true;
+                if (isSoftLink(p)) {
+                    Path link = followSoftLink(p);
+                    if (exists(link)) return iSD(p, visited);
+                    return link.hasSuffix();
+                }
+                return false;
+            };
+            std::set<Path> visited;
+            return iSD(p, visited);
         }
 
         inline bool isSoftFile(Path p) {
-            if (isFile(p)) return true;
-            if (isSoftLink(p)) {
-                Path link = followSoftLink(p);
-                if (exists(link)) return isSoftFile(p);
-                return link.hasSuffix();
-            }
-            return false;
+            std::function<bool(Path, std::set<Path>&)> iSF;
+            iSF = [&iSF](Path p, std::set<Path>& visited) {
+                if (visited.count(p)) return false;
+                visited.insert(p);
+
+                if (isFile(p)) return true;
+                if (isSoftLink(p)) {
+                    Path link = followSoftLink(p);
+                    if (exists(link)) return iSF(p, visited);
+                    return link.hasSuffix();
+                }
+                return false;
+            };
+            std::set<Path> visited;
+            return iSF(p, visited);
         }
+
         inline bool isSocket(Path p) { return std::filesystem::is_socket(p); }
         inline void createHardLink(Path from, Path to) { return std::filesystem::create_hard_link(from, to); }
         inline void createSoftLink(Path from, Path to) {
             Path linkroot = to.removeEmptySuffix().splitSuffix().first;
-            if (isSoftDirectory(from) || !from.hasSuffix()) to = to.removeEmptySuffix();
+            to = to.removeEmptySuffix();
             from = std::filesystem::relative(from, linkroot);
-
             std::filesystem::create_symlink(from, to);
         }
         //from path will be relative (the way it is in the OS)
@@ -502,25 +529,13 @@ namespace estd {
         inline void copy(Path from, Path to, const uint64_t opt) {
             if (!exists(from.removeEmptySuffix())) throwError("cannot copy: No such file or directory", &from);
 
-            if (from.isDirectory() != isSoftDirectory(from)) {
+            if (from.isDirectory() != isDirectory(from)) {
                 if (from.isDirectory()) {
                     throwError("cannot copy: source not a directory", &from);
                 } else {
                     throwError("cannot copy: source not a file", &from);
                 }
             }
-
-            // bool toIsDir = to.isDirectory();
-
-            // if (exists(to.removeEmptySuffix())) {
-            //     // if (toIsDir != isSoftDirectory(to)) {
-            //     if (toIsDir) {
-            //         throwError("cannot copy: destination not a directory", &from, &to);
-            //     } else {
-            //         throwError("cannot copy: destination not a file", &from, &to);
-            //     }
-            //     // }
-            // }
 
             try {
                 if (isSoftLink(from.removeEmptySuffix())) {
