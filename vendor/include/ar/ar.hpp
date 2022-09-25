@@ -126,7 +126,7 @@ namespace ar {
 
 	public:
 		bool throwOnUnsupported = true;
-		bool allowSeekg = false;
+		bool allowSeekg = true;
 		Reader(std::string const& filename) :
 			inputStreamPtr(std::make_unique<std::ifstream>(filename, std::ios_base::in | std::ios_base::binary)),
 			inputStream(*inputStreamPtr.get()) {}

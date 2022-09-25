@@ -88,6 +88,17 @@ namespace tar {
 
 	class Reader {
 	private:
+        template<class T>
+		inline void wrapFilesystemCall(T fsCall) {
+			if (throwOnFilesystemFailures) {
+				fsCall();
+			} else {
+				try {
+					fsCall();
+				} catch (...) {}
+			}
+		}
+
 		std::pair<bool, Path> changeRoot(Path path, Path from, Path to) {
 			path = ("." / path).normalize();// paths in tar file can only be relative
 			from = ("." / from).normalize();// prefix paths can only be relative
@@ -235,9 +246,9 @@ namespace tar {
 				inTarPath = inTarPath.normalize();
 
 				if (header.typeflag == '5') {
-					inTarPath.addEmptySuffix();
+					inTarPath = inTarPath.addEmptySuffix();
 				} else {
-					inTarPath.removeEmptySuffix();
+					inTarPath = inTarPath.removeEmptySuffix();
 				}
 
 				Path extractPath;
@@ -263,16 +274,21 @@ namespace tar {
 
 					if (extract && isValidForExtract) {
 						if (!extractPath.hasSuffix()) extractPath.replaceSuffix(source.getSuffix());
-						estd::files::createDirectories(extractPath.getAntiSuffix());
-						std::ofstream f = std::ofstream(extractPath, std::ios::out | std::ios::binary);
-						f << filestream.rdbuf();
-						f.close();
-						estd::files::setPermissions(extractPath, permissions[inTarPath.string()]);
+						wrapFilesystemCall([&] {
+							estd::files::createDirectories(extractPath.getAntiSuffix());
+							std::ofstream f = std::ofstream(extractPath, std::ios::out | std::ios::binary);
+							if (f.fail()) throw std::runtime_error("Tar: failed to create file: " + extractPath);
+							f << filestream.rdbuf();
+							f.close();
+							estd::files::setPermissions(extractPath, permissions[inTarPath.string()]);
+						});
 					}
 				} else if (header.typeflag == '5') {// is dir
 					if (extract && isValidForExtract) {
-						estd::files::createDirectories(extractPath);
-						estd::files::setPermissions(extractPath, permissions[inTarPath.string()]);
+						wrapFilesystemCall([&] {
+							estd::files::createDirectories(extractPath);
+							estd::files::setPermissions(extractPath, permissions[inTarPath.string()]);
+						});
 					}
 				} else if (header.typeflag == '1') {// hard
 					Path linkPath = header.linkname;
@@ -306,22 +322,26 @@ namespace tar {
 				std::tie(isValidForExtract, extractPath) = changeRoot(hardLink.first, source, destination);
 				if (!isValidForExtract) continue;
 
+				wrapFilesystemCall([&] { estd::files::createDirectories(extractPath.getAntiSuffix()); });
+
 				if (!extractHardLinksAsCopies) {
 					auto [isValid, localPath] = changeRoot(hardLink.second, source, destination);
 					if (isValid) {
-						try {
+						wrapFilesystemCall([&] {
 							estd::files::createHardLink(localPath, extractPath);
 							estd::files::setPermissions(extractPath, permissions[hardLink.first]);
-						} catch (...) {}
+						});
 						continue;// skip the copy code then.
 					}
 				}
-
-				estd::isubstream sourceFile = open(hardLink.second);
-				std::ofstream destinationFile = std::ofstream(extractPath, std::ios::out | std::ios::binary);
-				destinationFile << sourceFile.rdbuf();
-				destinationFile.close();
-				estd::files::setPermissions(extractPath, permissions[hardLink.first]);
+				wrapFilesystemCall([&] {
+					estd::isubstream sourceFile = open(hardLink.second);
+					std::ofstream destinationFile = std::ofstream(extractPath, std::ios::out | std::ios::binary);
+					if (destinationFile.fail()) throw std::runtime_error("Tar: failed to create file: " + extractPath);
+					destinationFile << sourceFile.rdbuf();
+					destinationFile.close();
+					estd::files::setPermissions(extractPath, permissions[hardLink.first]);
+				});
 			}
 
 			for (auto& softLink : softLinks) {
@@ -351,16 +371,20 @@ namespace tar {
 		void extractSoftlinks(Path path, Path destination, Path origExtPath, std::set<std::string>& visited) {
 			if (isExistingDirectory(path)) {
 				path = path.addEmptySuffix();
-				estd::files::createDirectories(destination);
-				estd::files::setPermissions(destination, permissions[path]);
+				wrapFilesystemCall([&] {
+					estd::files::createDirectories(destination);
+					estd::files::setPermissions(destination, permissions[path]);
+				});
 				for (Path subpath : paths) {
 					if (path.contains(subpath) && subpath != path) {
 						Path subdestination = subpath.replacePrefix(path, destination).value();
 						if (!isExistingDirectory(subpath)) {
 							extractSoftlinks(subpath, subdestination, origExtPath, visited);
 						} else {
-							estd::files::createDirectories(subdestination);
-							estd::files::setPermissions(subdestination, permissions[subpath]);
+							wrapFilesystemCall([&] {
+								estd::files::createDirectories(subdestination);
+								estd::files::setPermissions(subdestination, permissions[subpath]);
+							});
 						}
 					}
 				}
@@ -371,11 +395,14 @@ namespace tar {
 				try {
 					file = open(path);
 				} catch (...) { throw std::runtime_error("Tar: file stream could not be opened " + path.string()); }
-
-				std::ofstream destinationFile = std::ofstream(destination, std::ios::out | std::ios::binary);
-				destinationFile << file.rdbuf();
-				destinationFile.close();
-				estd::files::setPermissions(destination, permissions[path]);
+				wrapFilesystemCall([&] {
+					estd::files::createDirectories(destination.getAntiSuffix());
+					std::ofstream destinationFile = std::ofstream(destination, std::ios::out | std::ios::binary);
+					if (destinationFile.fail()) throw std::runtime_error("Tar: failed to create file: " + destination);
+					destinationFile << file.rdbuf();
+					destinationFile.close();
+					estd::files::setPermissions(destination, permissions[path]);
+				});
 				return;
 			}
 
@@ -421,11 +448,7 @@ namespace tar {
 				}
 			}
 
-			try {
-				estd::files::createSoftLinkRelative(linkedPath, destination);
-			} catch (...) {
-				//throw std::runtime_error("Tar: link " + path.string() + " symlink could not be made");
-			}
+			wrapFilesystemCall([&] { estd::files::createSoftLinkRelative(linkedPath, destination); });
 		}
 
 		std::unique_ptr<std::ifstream> inputStreamPtr;
@@ -459,6 +482,9 @@ namespace tar {
 
 		// this option is relevant only for the open function.
 		bool followSoftlinks = true;
+
+		// throw on filesystem failures
+		bool throwOnFilesystemFailures = false;
 
 		// permissions will be OR'd with this mask (octal permission example permissionMask = 0777)
 		uint16_t permissionMask = 0;
