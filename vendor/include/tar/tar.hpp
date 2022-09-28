@@ -88,7 +88,7 @@ namespace tar {
 
 	class Reader {
 	private:
-        template<class T>
+		template <class T>
 		inline void wrapFilesystemCall(T fsCall) {
 			if (throwOnFilesystemFailures) {
 				fsCall();
@@ -262,7 +262,7 @@ namespace tar {
 				}
 
 				paths.insert(inTarPath.string());
-				permissions[inTarPath.string()] = toUnixPermissions(header.mode) | permissionMask;
+				permissions[inTarPath.string()] = toUnixPermissions(header.mode) | minPermissions;
 
 				if (header.typeflag == '0' || header.typeflag == '\0') {// is file
 					auto filestream =
@@ -325,7 +325,9 @@ namespace tar {
 				wrapFilesystemCall([&] { estd::files::createDirectories(extractPath.getAntiSuffix()); });
 
 				if (!extractHardLinksAsCopies) {
-					auto [isValid, localPath] = changeRoot(hardLink.second, source, destination);
+					bool isValid;
+					Path localPath;
+					std::tie(isValid, localPath) = changeRoot(hardLink.second, source, destination);
 					if (isValid) {
 						wrapFilesystemCall([&] {
 							estd::files::createHardLink(localPath, extractPath);
@@ -487,7 +489,7 @@ namespace tar {
 		bool throwOnFilesystemFailures = false;
 
 		// permissions will be OR'd with this mask (octal permission example permissionMask = 0777)
-		uint16_t permissionMask = 0;
+		uint16_t minPermissions = 644;
 
 
 		Reader(std::string const& filename) :

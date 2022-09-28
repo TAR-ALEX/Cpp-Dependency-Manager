@@ -100,9 +100,10 @@ namespace estd {
             Path normalizeSafe() = delete; // TODO: Not implemented yet
 
             // tells if this path is a parent of the passed path if(other is a tree in *this) (only for directories)
-            bool contains(Path& other) {
+            bool contains(Path& other) { // TODO: cover edge cases
                 Path left = Path((*this) / "").normalize();
                 Path right = Path(other / "").normalize();
+                if (left == ".") { return true; }
 
                 return estd::string_util::hasPrefix(right, left);
             }

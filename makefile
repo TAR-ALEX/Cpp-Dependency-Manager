@@ -28,13 +28,13 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-CC=g++
-CC_CPP=g++
-CC_C=gcc
+# CC=g++
+# CC_CPP=g++
+# CC_C=gcc
 
-# CC=clang++
-# CC_CPP=clang++
-# CC_C=clang
+CC=clang++
+CC_CPP=clang++
+CC_C=clang
 
 CCFLAGS=-Wall -O3 -I"./include" -I"./vendor/include" -DBOOST_REGEX_STANDALONE=0
 
