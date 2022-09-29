@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include <array>
 #include <estd/filesystem.hpp>
 #include <estd/isubstream.hpp>
 #include <fstream>
@@ -44,7 +45,7 @@ namespace tar {
 	namespace// anonymous namespace
 	{
 		using estd::files::Path;
-#pragma pack(0)
+#pragma pack(push, 1)
 		struct posix_header {	   /* byte offset */
 			uint8_t name[100];	   /*   0 */
 			uint8_t mode[8];	   /* 100 */
@@ -65,6 +66,7 @@ namespace tar {
 			uint8_t padding[12];   /* 500 */
 								   /* 512 */
 		};
+#pragma pack(pop)
 
 		struct parsed_posix_header {
 			std::string name;

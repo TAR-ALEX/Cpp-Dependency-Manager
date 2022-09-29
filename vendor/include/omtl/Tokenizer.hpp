@@ -46,10 +46,10 @@ namespace omtl {
     class Token {
     private:
         friend class Tokenizer;
-        const static uint8_t name = 0;
-        const static uint8_t string = 1;
-        const static uint8_t number = 2;
-        const static uint8_t comment = 3;
+        inline const static uint8_t name = 0;
+        inline const static uint8_t string = 1;
+        inline const static uint8_t number = 2;
+        inline const static uint8_t comment = 3;
 
     public:
         std::string paddingBefore = "";

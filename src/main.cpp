@@ -29,6 +29,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define CPPHTTPLIB_OPENSSL_SUPPORT
+#include <httplib.h>
+
 #include "conflict-detector.hpp"
 #include "omtl/ParseTree.hpp"
 #include "omtl/Tokenizer.hpp"
@@ -39,15 +41,14 @@
 #include <estd/ptr.hpp>
 #include <filesystem>
 #include <fstream>
-#include <httplib.h>
 #include <iostream>
 #include <map>
 #include <tar/tar.hpp>
 #include <thread>
 #include <vector>
 
-using namespace std;
 using namespace httplib;
+using namespace std;
 using namespace omtl;
 using namespace estd::shortnames;
 using estd::files::Path;
@@ -148,15 +149,15 @@ void parseGit(Element tokens) {
     string repoId = "git " + sourceUrl + " " + sourceHash;
 
     Path cache = repoCache->createDir(repoId, "", [&](Path cache) {
-        string gitCall = "git clone '";
+        string gitCall = "git clone \"";
         gitCall += sourceUrl;
-        gitCall += "' ";
+        gitCall += "\" ";
         gitCall += "-b ";
         gitCall += sourceHash;
-        gitCall += " '";
+        gitCall += " \"";
 
         gitCall += cache.string();
-        gitCall += "'";
+        gitCall += "\"";
 
         cout << gitCall << endl;
         if (system(gitCall.c_str()) != 0) {

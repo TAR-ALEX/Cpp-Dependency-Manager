@@ -50,20 +50,18 @@ namespace omtl {
     class Element {
     private:
         friend class ParseTreeBuilder;
-        estd::stack_ptr<std::deque<std::pair<std::string, Element>>> tuple;
-        estd::stack_ptr<std::deque<Element>> statement;
-        estd::stack_ptr<Token> value;
+        estd::clone_ptr<std::deque<std::pair<std::string, Element>>> tuple;
+        estd::clone_ptr<std::deque<Element>> statement;
+        estd::clone_ptr<Token> value;
 
-        inline Element& getSingleElement() {
-            if (statement != nullptr && statement->size() == 1) { return statement[0]; }
-            return *this;
-        }
+        inline Element& getSingleElement();
 
     public:
         Element();
         Element(Token v);
         Element(std::deque<std::pair<std::string, Element>> t);
         Element(std::deque<Element> s);
+        ~Element() {}
 
         std::string location = "";
 
@@ -73,8 +71,8 @@ namespace omtl {
         bool onlyContains(std::set<std::string> names);
         bool contains(std::string name);
         bool contains(size_t id);
-        estd::stack_ptr<Element> operator[](std::string name);
-        estd::stack_ptr<Element> operator[](size_t id);
+        estd::clone_ptr<Element> operator[](std::string name);
+        estd::clone_ptr<Element> operator[](size_t id);
 
         Element slice(size_t left, size_t right = SIZE_MAX);
         Element popFront();
@@ -86,31 +84,25 @@ namespace omtl {
         void pushFront(std::string n, Element e);
         void pushBack(std::string n, Element e);
 
-        bool isTuple() { return this->tuple != nullptr; }
-        bool isStatement() { return this->statement != nullptr; }
-        bool isToken() {
-            Element& e = getSingleElement();
-            return e.value != nullptr;
-        }
+        bool isTuple();
+        bool isStatement();
+        bool isToken();
 
-        bool isString() { return isToken() && getToken().isString(); }
-        bool isComment() { return isToken() && getToken().isComment(); }
-        bool isName() { return isToken() && getToken().isName(); }
-        bool isNumber() { return isToken() && getToken().isNumber(); }
-        bool isValue() { return isToken() && getToken().isValue(); }
-        bool isRaw() { return isToken(); }
+        bool isString();
+        bool isComment();
+        bool isName();
+        bool isNumber();
+        bool isValue();
+        bool isRaw();
 
-        Token getToken() {
-            Element& e = getSingleElement();
-            return e.value.value();
-        }
-        std::string getString() { return getToken().getString(); }
-        std::string getEscapedString() { return getToken().getEscapedString(); }
-        std::string getComment() { return getToken().getComment(); }
-        std::string getName() { return getToken().getName(); }
-        estd::BigDec getNumber() { return getToken().getNumber(); }
-        std::string getValue() { return getToken().getValue(); }
-        std::string getRaw() { return getToken().getRaw(); }
+        Token getToken();
+        std::string getString();
+        std::string getEscapedString();
+        std::string getComment();
+        std::string getName();
+        estd::BigDec getNumber();
+        std::string getValue();
+        std::string getRaw();
     };
 
     class ParseTreeBuilder {

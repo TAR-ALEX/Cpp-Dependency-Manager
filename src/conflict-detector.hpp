@@ -31,7 +31,7 @@ namespace {
                 for (const auto& entry : RecursiveDirectoryIterator(from)) {
                     Path f = entry.path().normalize();
                     Path t = *f.replacePrefix(from, to);
-                    result.push_back({f, t});
+                    result.push_back({f, t.normalize()});
                 }
             }
         }
@@ -57,7 +57,7 @@ void copyRepo(std::string repo, Path source, Path destination) {
             continue;
         }
         // cout << "fs::copy(" << from << ", " << to << ")\n";
-        fs::createDirectories(to.removeEmptySuffix().splitSuffix().first);
+        fs::createDirectories(to.removeEmptySuffix().splitSuffix().first.normalize());
         fs::copy(from, to, fs::CopyOptions::overwriteExisting);
         fileMap[to] = repo;
     }

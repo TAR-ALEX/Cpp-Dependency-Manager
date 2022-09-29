@@ -202,7 +202,7 @@ std::string Element::getDiagnosticString() {
     return "unknown type";
 }
 
-estd::stack_ptr<Element> Element::operator[](std::string name) {
+estd::clone_ptr<Element> Element::operator[](std::string name) {
     Element& e = *this;
 
     if (e.tuple != nullptr) {
@@ -213,7 +213,7 @@ estd::stack_ptr<Element> Element::operator[](std::string name) {
     return nullptr;
 }
 
-estd::stack_ptr<Element> Element::operator[](size_t id) {
+estd::clone_ptr<Element> Element::operator[](size_t id) {
     Element& e = *this;
     if (e.tuple != nullptr) {
         if (id >= e.tuple->size()) return nullptr;
@@ -319,4 +319,35 @@ Element Element::slice(size_t left, size_t right) {
     if (right < size()) copy.popBack(size() - right);
     copy.popFront(left);
     return copy;
+}
+
+
+bool Element::isTuple() { return this->tuple != nullptr; }
+bool Element::isStatement() { return this->statement != nullptr; }
+bool Element::isToken() {
+    Element& e = getSingleElement();
+    return e.value != nullptr;
+}
+
+bool Element::isString() { return isToken() && getToken().isString(); }
+bool Element::isComment() { return isToken() && getToken().isComment(); }
+bool Element::isName() { return isToken() && getToken().isName(); }
+bool Element::isNumber() { return isToken() && getToken().isNumber(); }
+bool Element::isValue() { return isToken() && getToken().isValue(); }
+bool Element::isRaw() { return isToken(); }
+
+Token Element::getToken() {
+    Element& e = getSingleElement();
+    return e.value.value();
+}
+std::string Element::getString() { return getToken().getString(); }
+std::string Element::getEscapedString() { return getToken().getEscapedString(); }
+std::string Element::getComment() { return getToken().getComment(); }
+std::string Element::getName() { return getToken().getName(); }
+estd::BigDec Element::getNumber() { return getToken().getNumber(); }
+std::string Element::getValue() { return getToken().getValue(); }
+std::string Element::getRaw() { return getToken().getRaw(); }
+inline Element& Element::getSingleElement() {
+    if (statement != nullptr && statement->size() == 1) { return statement[0]; }
+    return *this;
 }

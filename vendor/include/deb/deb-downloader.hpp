@@ -217,7 +217,7 @@ namespace deb {
 			for (const auto& entry : urls) {
 				auto* mapToPlace = &packageToUrlMaps[k];
 				k++;
-				trm.schedule([=]() {
+				trm.schedule([=, this]() {
 					string listUrl;
 					string baseUrl;
 					tie(baseUrl, listUrl) = entry;
