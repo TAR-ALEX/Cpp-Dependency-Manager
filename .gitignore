@@ -3,3 +3,8 @@
 /gmon.out
 /vendor2/
 /vendor/include/boost/regex/v4/
+/vendor/bzip2/
+/vendor/liblzma/
+/vendor/openssl-cmake/
+/vendor/zlib/
+/vendor/xz/

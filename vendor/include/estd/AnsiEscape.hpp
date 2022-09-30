@@ -30,8 +30,8 @@
 
 #pragma once
 
-#ifdef __WIN32__
-    #include <curses.h>
+#if defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__)
+    #include <conio.h>
 #else
     #include <termios.h>
     #include <unistd.h>
@@ -48,7 +48,7 @@ namespace estd {
     const int KeY_SPACE = ' ';
     const int KeY_ENTER = 13;
 
-#ifndef __WIN32__
+#if !(defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__))
     char getch(void) {
         char buf = 0;
         struct termios old = {0};

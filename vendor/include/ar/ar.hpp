@@ -42,7 +42,7 @@
 namespace ar {
 	namespace// anonymous namespace
 	{
-#pragma pack(0)
+#pragma pack(push, 1)
 		struct raw_header {
 			uint8_t name[16];
 			uint8_t mtime[12];
@@ -54,6 +54,7 @@ namespace ar {
 			uint8_t size[10];
 			uint8_t end[2];
 		};
+#pragma pack(pop)
 
 		struct parsed_header {
 			std::string name;
@@ -254,10 +255,10 @@ namespace ar {
 				auto path = destination / inArPath;
 
 				bool canSkip = false;
-				if (!StartsWith(inArPath, source)) {
+				if (!StartsWith(inArPath.string(), source.string())) {
 					canSkip = true;
 				} else {
-					inArPath = ReplacePrefix(inArPath, source, "");
+					inArPath = ReplacePrefix(inArPath.string(), source.string(), "");
 					inArPath = inArPath.lexically_normal();
 				}
 
