@@ -123,7 +123,7 @@ std::vector<Token> Tokenizer::tokenize(std::istream& infile, std::string filenam
             }
         } else {
             token.dataType = Token::name;
-            if (c == ' ' || c == '\n') {
+            if (estd::string_util::isWhitespace(c)) {
                 if (token.rawValue != "") insertToken(token);
                 token.paddingBefore += c;
             } else if (c == '[' || c == ']' || c == ':' || c == ',') {

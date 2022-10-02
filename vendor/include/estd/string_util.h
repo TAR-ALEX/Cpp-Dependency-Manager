@@ -1,5 +1,6 @@
 #pragma once
 
+#include <set>
 #include <sstream>
 #include <string>
 
@@ -20,7 +21,7 @@ namespace estd {
             return str;
         }
 
-        inline static bool hasPrefix(std::string str, const std::string& prefix){
+        inline static bool hasPrefix(std::string str, const std::string& prefix) {
             return str.rfind(prefix, 0) != std::string::npos;
         }
 
@@ -156,6 +157,12 @@ namespace estd {
             for (int i = 0; i < len; ++i) { tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)]; }
 
             return tmp_s;
+        }
+
+        // Test if is ascii whitespace
+        inline static bool isWhitespace(char c) {
+            const std::set whitespace = {' ', '\t', '\n', '\v', '\f', '\r'};
+            return whitespace.count(c);
         }
     } // namespace string_util
 } // namespace estd

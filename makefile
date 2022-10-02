@@ -38,7 +38,7 @@ CC_C=clang
 
 CCFLAGS=-Wall -O3 -I"./include" -I"./vendor/include" -DBOOST_REGEX_STANDALONE=0
 
-CPP_CCFlags=$(CCFLAGS) -std=c++17
+CPP_CCFlags=$(CCFLAGS) -std=c++2a
 C_CCFlags=$(CCFLAGS)
 
 LDFLAGS=-O3 -std=c++11 -lstdc++fs -lssl -lcrypto -llzma -lz -lbz2 -lpthread #-lboost_regex

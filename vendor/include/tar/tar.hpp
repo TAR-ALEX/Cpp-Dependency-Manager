@@ -300,7 +300,6 @@ namespace tar {
 					Path linkPath = header.linkname;
 					softLinks.insert({inTarPath, linkPath.normalize()});
 				} else {
-					std::streampos pos = header.size + dataBlockOffset;
 					if (throwOnUnsupported) {
 						throw std::runtime_error(
 							"Tar: tar has an unsuppoted entry type (TODO - not "
