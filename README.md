@@ -7,11 +7,19 @@ To use this depencency manager you must create a vendor.txt file inside of you p
 
 For git:
 
-`git "{source url}" {source branch/tag/commit} "{relative dir from git project, what needs to be copied}" "{relative dir of current project, where it needs to be copied}",`
+```
+git "{source url}" {source branch/tag/commit} 
+"{relative dir from git project, what needs to be copied}" 
+"{relative dir of current project, where it needs to be copied}",
+```
 
 For tar:
 
-`tar "{source url}" "{relative dir from git project, what needs to be copied}" "{relative dir of current project, where it needs to be copied}",`
+```
+tar "{source url}" 
+"{relative dir from git project, what needs to be copied}" 
+"{relative dir of current project, where it needs to be copied}",
+```
 
 Sample usage for deb:
 ```
