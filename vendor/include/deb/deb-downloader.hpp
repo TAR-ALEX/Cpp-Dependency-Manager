@@ -297,7 +297,10 @@ namespace deb {
 		) {
 			string url;
 			vector<std::thread> threads;
-			std::shared_ptr<void> _(nullptr, bind([&] { currentlyInstallingList.erase(package); }));
+			std::shared_ptr<void> _(nullptr, bind([&] {
+										unique_lock<mutex> lock(installLock);
+										currentlyInstallingList.erase(package);
+									}));
 			{
 				unique_lock<mutex> lock(installLock);
 				currentlyInstallingList.insert(package);

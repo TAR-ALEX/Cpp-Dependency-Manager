@@ -123,7 +123,7 @@ namespace estd {
             bool contains(Path& other) { // TODO: cover edge cases
                 Path left = Path((*this) / "").normalize();
                 Path right = Path(other / "").normalize();
-                if (left == ".") { return true; }
+                if (left == "./") { return true; }
 
                 return estd::string_util::hasPrefix(right, left);
             }
