@@ -59,5 +59,5 @@ libbz2.so.1.0
 ```
 
 ```
-sudo apt install build-essential libbz2-dev liblzma-dev libz-dev libssl-dev git
+sudo apt install build-essential libbz2-dev liblzma-dev libz-dev libzstd-dev libssl-dev git
 ```
