@@ -23,6 +23,7 @@ git "https://github.com/sergiud/bzip2.git" cmake "./" "./vendor/bzip2/",
 git "https://github.com/ShiftMediaProject/liblzma.git" master "./" "./vendor/liblzma/",
 git "http://github.com/madler/zlib.git" master "./" "./vendor/zlib/",
 git "https://github.com/janbar/openssl-cmake.git" master "./" "./vendor/openssl-cmake/",
+git "https://github.com/facebook/zstd.git" dev "./" "./vendor/zstd/",
 
 (git "https://github.com/xz-mirror/xz.git" master "./" "./vendor/xz/",)(not used)
 

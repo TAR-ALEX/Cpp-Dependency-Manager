@@ -49,7 +49,7 @@ namespace estd {
     const int KeY_ENTER = 13;
 
 #if !(defined(_WIN32) || defined(WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__BORLANDC__))
-    char getch(void) {
+    inline char getch(void) {
         char buf = 0;
         struct termios old = {0};
         fflush(stdout);
@@ -74,10 +74,10 @@ namespace estd {
 #endif
 
     //moves cursor to the position (x, y)
-    std::string moveCursor(int x, int y) { return "\033[" + std::to_string(y) + ";" + std::to_string(x) + "H"; }
+    inline std::string moveCursor(int x, int y) { return "\033[" + std::to_string(y) + ";" + std::to_string(x) + "f"; }
 
     //detects which key was pressed
-    char getArrowKeyPress() {
+    inline char getArrowKeyPress() {
         int c = getch();
         if (c == 0 || c == 224) { c = getch(); }
         switch (c) {
@@ -92,31 +92,44 @@ namespace estd {
     }
 
     //clears a full line in the terminal
-    std::string clearLine = "\u001b[2K";
+    const std::string saveCursorPosition = "\e[s";
+    const std::string restoreCursorPosition = "\e[u";
+    inline std::string scroll(int y) {
+        if(y < 0) {return "\033[" + std::to_string(y) + "S"; }
+        return "\033[" + std::to_string(y) + "T";
+    }
+
+    inline std::string resizeWindow(int x,int y) {
+        return "\e[8;"+std::to_string(y)+";"+std::to_string(x)+"t";
+    }
+    
+
+    //clears a full line in the terminal
+    const std::string clearLine = "\u001b[2K";
     //clears everything on a line before the cursor
-    std::string clearLineBeforeCursor = "\u001b[1K";
+    const std::string clearLineBeforeCursor = "\u001b[1K";
     //clears everything on a line before after the cursor
-    std::string clearLineAfterCursor = "\u001b[0K";
+    const std::string clearLineAfterCursor = "\u001b[0K";
 
     //clears the screen before the cursor, everything after will remain
-    std::string clearBeforeCursor = "\u001b[1J";
+    const std::string clearBeforeCursor = "\u001b[1J";
     //clears the screen after the cursor, everything before will remain
-    std::string clearAfterCursor = "\u001b[0J";
+    const std::string clearAfterCursor = "\u001b[0J";
 
     //clears the screen
-    std::string clearScreen = moveCursor(0, 0) + clearAfterCursor;
+    const std::string clearScreen = moveCursor(0, 0) + clearAfterCursor;
     //Select RGB foreground color
-    std::string setTextColor(int r, int g, int b) {
+    inline std::string setTextColor(int r, int g, int b) {
         return "\033[38;2;" + std::to_string(r) + ";" + std::to_string(g) + ";" + std::to_string(b) + "m";
         //Select RGB foreground color
         //\033[48; 2; <r>; <g>; <b>m     #Select RGB background color
     }
     //Select RGB background color
-    std::string setBackgroundColor(int r, int g, int b) {
+    inline std::string setBackgroundColor(int r, int g, int b) {
         return "\033[48;2;" + std::to_string(r) + ";" + std::to_string(g) + ";" + std::to_string(b) +
                "m"; //Select RGB background color
     }
 
     //clears all of the textSettings
-    std::string clearSettings = "\033[0m";
+    const std::string clearSettings = "\033[0m";
 } // namespace estd

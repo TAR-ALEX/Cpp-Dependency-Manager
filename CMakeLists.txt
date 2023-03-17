@@ -14,6 +14,7 @@ if(MSVC OR BUILD_LIBS_FROM_SCRATCH)
     add_subdirectory(vendor/bzip2)
     add_subdirectory(vendor/liblzma)
     add_subdirectory(vendor/openssl-cmake)
+    add_subdirectory(vendor/zstd/build/cmake)
 endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
@@ -29,11 +30,13 @@ include_directories(
     ${bzip2_BINARY_DIR}
     ${xz_BINARY_DIR}
     ${openssl_BINARY_DIR}
+    ${zstd_BINARY_DIR}
 
     ${zlib_SOURCE_DIR}
     ${bzip2_SOURCE_DIR}
     ${xz_SOURCE_DIR}/src/liblzma/api/
     ${openssl_SOURCE_DIR}
+    ${zstd_SOURCE_DIR}
 
     "./vendor/include/"
     "./include/"
@@ -46,9 +49,9 @@ file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS "./src/*.cpp" "./vendor/src/*.cp
 add_executable(${PROJECT_NAME} ${APP_SOURCES})
 
 if(MSVC OR BUILD_LIBS_FROM_SCRATCH)
-    target_link_libraries(${PROJECT_NAME} PRIVATE zlibstatic BZip2::BZip2 crypto ssl liblzma)
+    target_link_libraries(${PROJECT_NAME} PRIVATE zlibstatic BZip2::BZip2 crypto ssl liblzma lzstd)
 else()
-    target_link_libraries(${PROJECT_NAME} PRIVATE -lstdc++fs -lssl -lcrypto -llzma -lz -lbz2 -lpthread)    
+    target_link_libraries(${PROJECT_NAME} PRIVATE -lstdc++fs -lssl -lcrypto -llzma -lz -lzstd -lbz2 -lpthread)    
 endif()
 
 

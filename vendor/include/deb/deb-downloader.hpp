@@ -336,7 +336,7 @@ namespace deb {
 			string controlString;
 
 			estd::isubstream dataTarCompressedStream;
-			for (auto path : {"data.tar.xz", "data.tar.gz", "data.tar"}) {
+			for (auto path : {"data.tar.xz", "data.tar.gz", "data.tar.zst", "data.tar.bz2", "data.tar"}) {
 				try {
 					dataTarCompressedStream = deb.open(path);
 					break;
@@ -358,7 +358,7 @@ namespace deb {
 			if (recursionDepth <= 1) return;
 
 			estd::isubstream controlTarCompressedStream;
-			for (auto path : {"control.tar.xz", "control.tar.gz", "control.tar"}) {
+			for (auto path : {"control.tar.xz", "control.tar.gz", "control.tar.zst", "control.tar.bz2", "control.tar"}) {
 				try {
 					controlTarCompressedStream = deb.open(path);
 					break;
