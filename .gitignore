@@ -8,3 +8,4 @@
 /vendor/openssl-cmake/
 /vendor/zlib/
 /vendor/xz/
+/vendor/zstd/

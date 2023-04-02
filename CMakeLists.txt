@@ -36,7 +36,7 @@ include_directories(
     ${bzip2_SOURCE_DIR}
     ${xz_SOURCE_DIR}/src/liblzma/api/
     ${openssl_SOURCE_DIR}
-    ${zstd_SOURCE_DIR}
+    "./vendor/zstd/lib"
 
     "./vendor/include/"
     "./include/"
@@ -44,12 +44,13 @@ include_directories(
     "./vendor/src"
 )
 
+
 file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS "./src/*.cpp" "./vendor/src/*.cpp")
 
 add_executable(${PROJECT_NAME} ${APP_SOURCES})
 
 if(MSVC OR BUILD_LIBS_FROM_SCRATCH)
-    target_link_libraries(${PROJECT_NAME} PRIVATE zlibstatic BZip2::BZip2 crypto ssl liblzma lzstd)
+    target_link_libraries(${PROJECT_NAME} PRIVATE -lstdc++fs -lpthread zlibstatic BZip2::BZip2 crypto ssl liblzma libzstd_static)
 else()
     target_link_libraries(${PROJECT_NAME} PRIVATE -lstdc++fs -lssl -lcrypto -llzma -lz -lzstd -lbz2 -lpthread)    
 endif()

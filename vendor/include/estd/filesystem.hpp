@@ -30,6 +30,7 @@
 
 #pragma once
 
+#include <cstdio>
 #include <estd/ptr.hpp>
 #include <estd/string_util.h>
 #include <exception>
@@ -144,6 +145,59 @@ namespace estd {
             Path getAntiSuffix() { return splitSuffix().first; }
             Path replaceSuffix(Path s) { return splitSuffix().first / s; }
             Path replacePrefix(Path s) { return s / splitPrefix().second; }
+
+            bool hasExtention() { return splitLongExtention().second != ""; }
+            std::string getExtention() { return splitExtention().second; }
+            Path replaceExtention(std::string s) { return splitExtention().first + "." + s; }
+
+            std::string getLongExtention() { return splitLongExtention().second; }
+            Path replaceLongExtention(std::string s) { return splitLongExtention().first + "." + s; }
+
+
+            std::pair<Path, std::string> splitExtention() {
+                size_t mid_pos = 0;
+                std::string source = getSuffix();
+                std::string psL = "";
+                std::string psR = "";
+                bool isHidden = false;
+                if (isDirectory()) return {string(), ""};
+                if (estd::string_util::hasPrefix(source, ".")) {
+                    source = source.substr(1);
+                    isHidden = true;
+                }
+                if ((mid_pos = source.rfind(".")) != std::string::npos) {
+                    psL = source.substr(0, mid_pos);
+                    psR = source.substr(mid_pos);
+                } else {
+                    return {string(), ""};
+                }
+                if (isHidden) psL = "." + psL;
+                if (estd::string_util::contains(string(), "/")) psL = getAntiSuffix() / psL;
+                return {psL, psR};
+            }
+
+
+            std::pair<Path, std::string> splitLongExtention() {
+                size_t mid_pos = 0;
+                std::string source = getSuffix();
+                std::string psL = "";
+                std::string psR = "";
+                bool isHidden = false;
+                if (isDirectory()) return {string(), ""};
+                if (estd::string_util::hasPrefix(source, ".")) {
+                    source = source.substr(1);
+                    isHidden = true;
+                }
+                if ((mid_pos = source.find(".")) != std::string::npos) {
+                    psL = source.substr(0, mid_pos);
+                    psR = source.substr(mid_pos);
+                } else {
+                    return {string(), ""};
+                }
+                if (isHidden) psL = "." + psL;
+                if (estd::string_util::contains(string(), "/")) psL = getAntiSuffix() / psL;
+                return {psL, psR};
+            }
 
             std::pair<Path, Path> splitPrefix() {
                 size_t mid_pos = 0;
@@ -548,6 +602,26 @@ namespace estd {
             }
 
             std::filesystem::copy_file(from, to, sopt);
+        }
+
+        inline void rename(Path from, Path to) {
+            if (from.isDirectory() != isDirectory(from)) {
+                if (from.isDirectory()) {
+                    throwError("cannot rename: source not a directory", &from);
+                } else {
+                    throwError("cannot rename: source not a file", &from);
+                }
+            }
+            if (from.isDirectory() != to.isDirectory()) {
+                if (from.isDirectory()) {
+                    throwError("cannot rename: destination not a directory", &from);
+                } else {
+                    throwError("cannot rename: destination not a file", &from);
+                }
+            }
+            if (std::rename(from.string().c_str(), to.string().c_str()) != 0) {
+                throwError("Failed to rename: source file ", &from);
+            }
         }
 
         inline void copy(Path from, Path to, const uint64_t opt) {
