@@ -29,12 +29,12 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef BXZSTR_CONFIG_HPP
-#define BXZSTR_CONFIG_HPP
+    #define BXZSTR_CONFIG_HPP
 
-#define BXZSTR_Z_SUPPORT 1
-#define BXZSTR_BZ2_SUPPORT 1
-#define BXZSTR_LZMA_SUPPORT 1
-#define BXZSTR_ZSTD_SUPPORT 1
+    #define BXZSTR_Z_SUPPORT 1
+    #define BXZSTR_BZ2_SUPPORT 1
+    #define BXZSTR_LZMA_SUPPORT 1
+    #define BXZSTR_ZSTD_SUPPORT 1
 
 #endif
 
@@ -53,6 +53,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <subprocess/subprocess.hpp>
 #include <tar/tar.hpp>
 #include <thread>
 #include <vector>
@@ -151,6 +152,33 @@ Path parseAheadCommonRoot(Element tokens) {
     return Path(source).normalize();
 }
 
+// void parseGit(Element tokens) {
+//     if (tokens.size() < 3) { cout << "[WARNING] not enough arguments for git statement at " + tokens.location << endl; }
+
+//     string sourceUrl = tokens[1]->getValue();
+//     string sourceHash = tokens[2]->getValue();
+//     string repoId = "git " + sourceUrl + " " + sourceHash;
+
+//     Path cache = repoCache->createDir(repoId, "", [&](Path cache) {
+//         string gitCall = "git clone \"";
+//         gitCall += sourceUrl;
+//         gitCall += "\" ";
+//         gitCall += "-b ";
+//         gitCall += sourceHash;
+//         gitCall += " \"";
+
+//         gitCall += cache.string();
+//         gitCall += "\"";
+
+//         cout << gitCall << endl;
+//         if (system(gitCall.c_str()) != 0) {
+//             cout << "git clone for " << sourceUrl << " returned a non zero exit code\n";
+//         }
+//     });
+
+//     parseMoveCache(cache, repoId, tokens.slice(3));
+// }
+
 void parseGit(Element tokens) {
     if (tokens.size() < 3) { cout << "[WARNING] not enough arguments for git statement at " + tokens.location << endl; }
 
@@ -159,19 +187,26 @@ void parseGit(Element tokens) {
     string repoId = "git " + sourceUrl + " " + sourceHash;
 
     Path cache = repoCache->createDir(repoId, "", [&](Path cache) {
-        string gitCall = "git clone \"";
-        gitCall += sourceUrl;
-        gitCall += "\" ";
-        gitCall += "-b ";
-        gitCall += sourceHash;
-        gitCall += " \"";
+        subprocess::popen cmd1("git", {"clone", sourceUrl, cache.string()}); //"-b", sourceHash,
 
-        gitCall += cache.string();
-        gitCall += "\"";
-
-        cout << gitCall << endl;
-        if (system(gitCall.c_str()) != 0) {
+        cout << repoId << endl;
+        cmd1.close();
+        if (cmd1.wait() != 0) {
             cout << "git clone for " << sourceUrl << " returned a non zero exit code\n";
+            cout << cmd1.stderr().rdbuf() << endl;
+            cout.clear();
+            cout << cmd1.stdout().rdbuf() << endl;
+            cout.clear();
+        }else{
+            subprocess::popen cmd2("git", {"-C", cache.string(), "checkout", sourceHash});
+            cmd2.close();
+            if (cmd2.wait() != 0) {
+                cout << "git checkout for " << sourceUrl << " returned a non zero exit code\n";
+                cout << cmd2.stderr().rdbuf() << endl;
+                cout.clear();
+                cout << cmd2.stdout().rdbuf() << endl;
+                cout.clear();
+            }
         }
     });
 

@@ -18,6 +18,7 @@ git "https://github.com/TAR-ALEX/omtl_parser_cpp.git" master "./include/" "./ven
 git "https://github.com/TAR-ALEX/estd_filesystem.git" master "./include/" "./vendor/include/",
 git "https://github.com/LizaTarasova/EstdAnsiEscape.git" master "./include/" "./vendor/include/",
 
+git "https://github.com/tsaarni/cpp-subprocess.git" master "./include/" "./vendor/include/subprocess/",
 
 git "https://github.com/sergiud/bzip2.git" cmake "./" "./vendor/bzip2/",
 git "https://github.com/ShiftMediaProject/liblzma.git" master "./" "./vendor/liblzma/",
