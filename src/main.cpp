@@ -47,6 +47,7 @@
 #include "repo-cache.hpp"
 #include <bxzstr.hpp>
 #include <deb/deb-downloader.hpp>
+#include <estd/AnsiEscape.hpp>
 #include <estd/filesystem.hpp>
 #include <estd/ptr.hpp>
 #include <filesystem>
@@ -136,10 +137,10 @@ void parseMoveCache(Path cache, string repoId, Element tokens) {
     const auto src = cache / source;
     const auto target = fs::currentPath() / destination;
 
-    cout << src.string() << endl << target.string() << endl;
+    // cout << src.string() << endl << target.string() << endl;
 
     copyRepo(repoId, src, target);
-    cout << endl;
+    // cout << endl;
 }
 
 Path parseAheadCommonRoot(Element tokens) {
@@ -197,7 +198,7 @@ void parseGit(Element tokens) {
             cout.clear();
             cout << cmd1.stdout().rdbuf() << endl;
             cout.clear();
-        }else{
+        } else {
             subprocess::popen cmd2("git", {"-C", cache.string(), "checkout", sourceHash});
             cmd2.close();
             if (cmd2.wait() != 0) {
@@ -296,14 +297,23 @@ void parseDebInstall(Element tokens) {
 }
 
 void parseBlock(Element pt);
+
+Path includePrefix = "./";
 void parseInclude(Element cmd) {
     if (cmd.size() != 2) throw runtime_error("invalid include command at " + cmd.location);
     Tokenizer tkn;
     ParseTreeBuilder ptb;
+    Path p = cmd[1]->getValue();
 
-    auto pt = ptb.buildParseTree(tkn.tokenize(cmd[1]->getValue()));
+    Path pwd = includePrefix;
+    p = pwd / p;
 
+
+    auto pt = ptb.buildParseTree(tkn.tokenize(p));
+
+    includePrefix = p.getAntiSuffix();
     parseBlock(pt);
+    includePrefix = pwd;
 }
 
 void parseBlock(Element pt) {
@@ -331,8 +341,9 @@ void parseBlock(Element pt) {
                 cout << "[WARNING] unsupported statement at " << pt[i][0]->location << endl;
             }
         } catch (std::exception& e) {
+            cout << estd::clearSettings << estd::setTextColor(255, 0, 0);
             cout << "[ERROR] ";
-            cout << e.what() << endl;
+            cout << e.what() << estd::clearSettings << endl;
         }
     }
 }
@@ -347,8 +358,9 @@ int main() {
         parseInclude(Element({Token("include"), Token("vendor.txt")}));
 
     } catch (std::exception& e) {
+        cout << estd::clearSettings << estd::setTextColor(255, 0, 0);
         cout << "[ERROR] ";
-        cout << e.what() << endl;
+        cout << e.what() << estd::clearSettings << endl;
     }
 
     return 0;

@@ -304,7 +304,8 @@ namespace estd {
             directoriesOnly = 1 << 6,
 
             copyAsSoftLinks = 1 << 7,
-            copyAsHardLinks = 1 << 8
+            copyAsHardLinks = 1 << 8,
+            overwriteReadonly = 1 << 9
         };
 
         class DirectoryEntry : public std::filesystem::directory_entry {
@@ -601,6 +602,7 @@ namespace estd {
                 }
             }
 
+            if (CopyOptions::overwriteReadonly) remove(to);
             std::filesystem::copy_file(from, to, sopt);
         }
 

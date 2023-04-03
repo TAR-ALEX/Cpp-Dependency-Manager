@@ -58,7 +58,7 @@ void copyRepo(std::string repo, Path source, Path destination) {
         }
         // cout << "fs::copy(" << from << ", " << to << ")\n";
         fs::createDirectories(to.removeEmptySuffix().splitSuffix().first.normalize());
-        fs::copy(from, to, fs::CopyOptions::overwriteExisting);
+        fs::copy(from, to, fs::CopyOptions::overwriteExisting | fs::CopyOptions::overwriteReadonly);
         fileMap[to] = repo;
     }
 }

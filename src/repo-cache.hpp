@@ -19,7 +19,8 @@ private:
     std::map<std::string, Path> cahceFiles;
     std::map<std::string, std::set<Path>> cacheSourcePaths;
     jptr<TmpDir> temp;
-    estd::ostream_proxy dbg{&std::cout};
+    // estd::ostream_proxy dbg{&std::cout};
+    estd::ostream_proxy dbg{};
 
 public:
     RepoCache(jptr<TmpDir> t) : temp(t) {}
