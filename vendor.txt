@@ -1,5 +1,5 @@
 git "https://github.com/TAR-ALEX/Semaphore.git" main "./include/" "./vendor/include/",
-git "https://github.com/yhirose/cpp-httplib.git" v0.10.9 "./httplib.h" "./vendor/include/httplib.h",
+git "https://github.com/yhirose/cpp-httplib.git" v0.12.2 "./httplib.h" "./vendor/include/httplib.h",
 git "https://github.com/tmaklin/bxzstr.git" master "./include/" "./vendor/include/",
 
 git "https://github.com/boostorg/regex.git" master "./include/" "./vendor/include/",
@@ -20,11 +20,11 @@ git "https://github.com/LizaTarasova/EstdAnsiEscape.git" master "./include/" "./
 
 git "https://github.com/tsaarni/cpp-subprocess.git" master "./include/" "./vendor/include/subprocess/",
 
-git "https://github.com/sergiud/bzip2.git" cmake "./" "./vendor/bzip2/",
-git "https://github.com/ShiftMediaProject/liblzma.git" master "./" "./vendor/liblzma/",
-git "http://github.com/madler/zlib.git" master "./" "./vendor/zlib/",
-git "https://github.com/janbar/openssl-cmake.git" master "./" "./vendor/openssl-cmake/",
-git "https://github.com/facebook/zstd.git" dev "./" "./vendor/zstd/",
+git "https://github.com/sergiud/bzip2.git" c4a14bb "./" "./vendor/bzip2/", (cmake)
+git "https://github.com/ShiftMediaProject/liblzma.git" v5.4.1 "./" "./vendor/liblzma/",
+git "https://github.com/madler/zlib.git" master "./" "./vendor/zlib/",
+git "https://github.com/janbar/openssl-cmake.git" 392d455 "./" "./vendor/openssl-cmake/",
+git "https://github.com/facebook/zstd.git" d4871d5 "./" "./vendor/zstd/",
 
 (git "https://github.com/xz-mirror/xz.git" master "./" "./vendor/xz/",)(not used)
 
