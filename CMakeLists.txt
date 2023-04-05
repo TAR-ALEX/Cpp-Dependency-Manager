@@ -30,13 +30,13 @@ include_directories(
     ${bzip2_BINARY_DIR}
     ${xz_BINARY_DIR}
     ${openssl_BINARY_DIR}
-    ${zstd_BINARY_DIR}
+    ${ZSTD_BINARY_DIR}
 
     ${zlib_SOURCE_DIR}
     ${bzip2_SOURCE_DIR}
     ${xz_SOURCE_DIR}/src/liblzma/api/
     ${openssl_SOURCE_DIR}
-    "./vendor/zstd/lib"
+    ${ZSTD_SOURCE_DIR}
 
     "./vendor/include/"
     "./include/"
