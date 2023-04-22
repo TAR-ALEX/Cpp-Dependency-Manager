@@ -11,13 +11,14 @@
 #include <string>
 #include <vector>
 #include <iostream>
-#include <ext/stdio_filebuf.h>
 #include <cstdio>
 #include <system_error>
 
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+
+#include "./filebuf.h"
 
 namespace subprocess
 {
@@ -42,7 +43,7 @@ public:
     popen(const std::string& cmd, std::vector<std::string> argv, std::ostream& pipe_stdout)
         : in_filebuf(nullptr), out_filebuf(nullptr), err_filebuf(nullptr), in_stream(nullptr), out_stream(nullptr), err_stream(nullptr)
     {
-        auto filebuf = dynamic_cast<__gnu_cxx::stdio_filebuf<char>*>(pipe_stdout.rdbuf());
+        auto filebuf = dynamic_cast<internal::stdio_filebuf<char>*>(pipe_stdout.rdbuf());
         out_pipe[READ]  = -1;
         out_pipe[WRITE] = filebuf->fd();
 
@@ -111,16 +112,16 @@ private:
         ::close(out_pipe[WRITE]);
         ::close(err_pipe[WRITE]);
         
-        in_filebuf = new __gnu_cxx::stdio_filebuf<char>(in_pipe[WRITE], std::ios_base::out, 1);
+        in_filebuf = new internal::stdio_filebuf<char>(in_pipe[WRITE], std::ios_base::out, 1);
         in_stream  = new std::ostream(in_filebuf);
         
         if (out_pipe[READ] != -1)
         {
-            out_filebuf = new __gnu_cxx::stdio_filebuf<char>(out_pipe[READ], std::ios_base::in, 1);
+            out_filebuf = new internal::stdio_filebuf<char>(out_pipe[READ], std::ios_base::in, 1);
             out_stream  = new std::istream(out_filebuf);
         }
         
-        err_filebuf = new __gnu_cxx::stdio_filebuf<char>(err_pipe[READ], std::ios_base::in, 1);
+        err_filebuf = new internal::stdio_filebuf<char>(err_pipe[READ], std::ios_base::in, 1);
         err_stream  = new std::istream(err_filebuf);
     }
     
@@ -158,9 +159,9 @@ private:
     int out_pipe[2];
     int err_pipe[2];
    
-    __gnu_cxx::stdio_filebuf<char>* in_filebuf;
-    __gnu_cxx::stdio_filebuf<char>* out_filebuf;
-    __gnu_cxx::stdio_filebuf<char>* err_filebuf;
+    internal::stdio_filebuf<char>* in_filebuf;
+    internal::stdio_filebuf<char>* out_filebuf;
+    internal::stdio_filebuf<char>* err_filebuf;
 
     std::ostream* in_stream;
     std::istream* out_stream;
