@@ -5,11 +5,11 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
-option(BUILD_LIBS_FROM_SCRATCH "BUILD LIBRARIES FROM SCRATCH, no dependencies link wise" OFF)
+option(BUILD_LIBS_FROM_SCRATCH "BUILD LIBRARIES FROM SCRATCH, almost no dependencies link wise" OFF)
 
 set(LIB_SEARCH_DIR "${CMAKE_SOURCE_DIR}/vendor/lib/")
 
-if(MSVC OR BUILD_LIBS_FROM_SCRATCH)
+if(MSVC OR BUILD_LIBS_FROM_SCRATCH OR APPLE)
     add_subdirectory(vendor/zlib)
     add_subdirectory(vendor/bzip2)
     add_subdirectory(vendor/liblzma)
@@ -37,6 +37,7 @@ include_directories(
     ${xz_SOURCE_DIR}/src/liblzma/api/
     ${openssl_SOURCE_DIR}
     ${ZSTD_SOURCE_DIR}
+    "./vendor/zstd/lib/"
 
     "./vendor/include/"
     "./include/"
@@ -49,7 +50,10 @@ file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS "./src/*.cpp" "./vendor/src/*.cp
 
 add_executable(${PROJECT_NAME} ${APP_SOURCES})
 
-if(MSVC OR BUILD_LIBS_FROM_SCRATCH)
+
+if(APPLE)
+    target_link_libraries(${PROJECT_NAME} PRIVATE "-framework CoreFoundation" "-framework Security" -lstdc++fs -lpthread zlibstatic BZip2::BZip2 crypto ssl liblzma libzstd_static)
+elseif(MSVC OR BUILD_LIBS_FROM_SCRATCH)
     target_link_libraries(${PROJECT_NAME} PRIVATE -lstdc++fs -lpthread zlibstatic BZip2::BZip2 crypto ssl liblzma libzstd_static)
 else()
     target_link_libraries(${PROJECT_NAME} PRIVATE -lstdc++fs -lssl -lcrypto -llzma -lz -lzstd -lbz2 -lpthread)    

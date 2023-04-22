@@ -189,6 +189,7 @@ void parseGit(Element tokens) {
 
     Path cache = repoCache->createDir(repoId, "", [&](Path cache) {
         subprocess::popen cmd1("git", {"clone", sourceUrl, cache.string()}); //"-b", sourceHash,
+        // system(("git clone " + sourceUrl + " " + cache.string()).c_str());
 
         cout << repoId << endl;
         cmd1.close();
@@ -200,6 +201,7 @@ void parseGit(Element tokens) {
             cout.clear();
         } else {
             subprocess::popen cmd2("git", {"-C", cache.string(), "checkout", sourceHash});
+            // system(("git -C " + cache.string() + " chechout " + sourceHash).c_str());
             cmd2.close();
             if (cmd2.wait() != 0) {
                 cout << "git checkout for " << sourceUrl << " returned a non zero exit code\n";
