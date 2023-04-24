@@ -106,7 +106,7 @@ Path downloadFile(string url, Path location) {
 
     fs::createDirectories(location.splitSuffix().first);
 
-    ofstream file(location);
+    ofstream file(location.string());
 
     httplib::Client cli((scheme + host).c_str());
     cli.set_follow_location(true);
@@ -181,34 +181,53 @@ Path parseAheadCommonRoot(Element tokens) {
 // }
 
 void parseGit(Element tokens) {
+    using namespace subprocess;
     if (tokens.size() < 3) { cout << "[WARNING] not enough arguments for git statement at " + tokens.location << endl; }
 
     string sourceUrl = tokens[1]->getValue();
     string sourceHash = tokens[2]->getValue();
     string repoId = "git " + sourceUrl + " " + sourceHash;
 
-    Path cache = repoCache->createDir(repoId, "", [&](Path cache) {
-        subprocess::popen cmd1("git", {"clone", sourceUrl, cache.string()}); //"-b", sourceHash,
-        // system(("git clone " + sourceUrl + " " + cache.string()).c_str());
+    std::cout << repoId << std::endl;
 
-        cout << repoId << endl;
-        cmd1.close();
-        if (cmd1.wait() != 0) {
-            cout << "git clone for " << sourceUrl << " returned a non zero exit code\n";
-            cout << cmd1.stderr().rdbuf() << endl;
-            cout.clear();
-            cout << cmd1.stdout().rdbuf() << endl;
-            cout.clear();
-        } else {
-            subprocess::popen cmd2("git", {"-C", cache.string(), "checkout", sourceHash});
+    Path cache = repoCache->createDir(repoId, "", [&](Path cache) {
+        int retcode = 0;
+        {
+            auto p = Popen({"git", "clone", sourceUrl, cache.string()}, input{PIPE}, output{PIPE}, error(PIPE));
+            auto comm = p.communicate();
+            p.close_input();
+            auto out = comm.first;
+            auto err = comm.second;
+            retcode = p.retcode();
+            // system(("git clone " + sourceUrl + " " + cache.string()).c_str());
+            if (retcode != 0) {
+                cout.clear();
+                cout << "git clone for " << sourceUrl << " returned a non zero exit code\n";
+                cout << out.buf.data() << endl;
+                cout.clear();
+                cout << err.buf.data() << endl;
+                cout.clear();
+                return;
+            }
+        }
+
+        {
+            auto p =
+                Popen({"git", "-C", cache.string(), "checkout", sourceHash}, input{PIPE}, output{PIPE}, error(PIPE));
+            auto comm = p.communicate();
+            p.close_input();
+            auto out = comm.first;
+            auto err = comm.second;
+            retcode = p.retcode();
             // system(("git -C " + cache.string() + " chechout " + sourceHash).c_str());
-            cmd2.close();
-            if (cmd2.wait() != 0) {
+            if (retcode != 0) {
+                cout.clear();
                 cout << "git checkout for " << sourceUrl << " returned a non zero exit code\n";
-                cout << cmd2.stderr().rdbuf() << endl;
+                cout << out.buf.data() << endl;
                 cout.clear();
-                cout << cmd2.stdout().rdbuf() << endl;
+                cout << err.buf.data() << endl;
                 cout.clear();
+                return;
             }
         }
     });

@@ -61,6 +61,7 @@ namespace omtl {
         Element(Token v);
         Element(std::deque<std::pair<std::string, Element>> t);
         Element(std::deque<Element> s);
+        Element(const Element& e);
         ~Element() {}
 
         std::string location = "";

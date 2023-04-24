@@ -121,11 +121,9 @@ namespace estd {
 
 		std::streamsize xsgetn(char* s, std::streamsize n) {
 			seekoff(std::streamoff(0), std::ios_base::cur);
-			if (pos + n >= length) { n = length - pos; }
+			if (int64_t(pos) + int64_t(n) >= int64_t(length)) { n = length - pos; }
 			pos += n;
-			if (n == 0) {
-				return 0;
-			}
+			if (n == 0) { return 0; }
 			return buf->sgetn(s, n);
 		}
 

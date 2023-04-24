@@ -160,6 +160,12 @@ Element::Element(std::deque<std::pair<std::string, Element>> t) { tuple = t; }
 
 Element::Element(std::deque<Element> s) { statement = s; }
 
+Element::Element(const Element& e) {
+    tuple = e.tuple;
+    statement = e.statement;
+    value = e.value;
+}
+
 std::string Element::getDiagnosticString() {
     using namespace std;
     using namespace estd::string_util;

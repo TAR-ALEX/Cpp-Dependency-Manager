@@ -52,7 +52,7 @@ add_executable(${PROJECT_NAME} ${APP_SOURCES})
 
 
 if(APPLE)
-    target_link_libraries(${PROJECT_NAME} PRIVATE "-framework CoreFoundation" "-framework Security" -lstdc++fs -lpthread zlibstatic BZip2::BZip2 crypto ssl liblzma libzstd_static)
+    target_link_libraries(${PROJECT_NAME} PRIVATE "-framework CoreFoundation" "-framework Security" -lpthread zlibstatic BZip2::BZip2 crypto ssl liblzma libzstd_static)
 elseif(MSVC OR BUILD_LIBS_FROM_SCRATCH)
     target_link_libraries(${PROJECT_NAME} PRIVATE -lstdc++fs -lpthread zlibstatic BZip2::BZip2 crypto ssl liblzma libzstd_static)
 else()

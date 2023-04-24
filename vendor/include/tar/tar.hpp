@@ -278,7 +278,7 @@ namespace tar {
 						if (!extractPath.hasSuffix()) extractPath.replaceSuffix(source.getSuffix());
 						wrapFilesystemCall([&] {
 							estd::files::createDirectories(extractPath.getAntiSuffix());
-							std::ofstream f = std::ofstream(extractPath, std::ios::out | std::ios::binary);
+							std::ofstream f = std::ofstream(extractPath.string(), std::ios::out | std::ios::binary);
 							if (f.fail()) throw std::runtime_error("Tar: failed to create file: " + extractPath);
 							f << filestream.rdbuf();
 							f.close();
@@ -339,7 +339,8 @@ namespace tar {
 				}
 				wrapFilesystemCall([&] {
 					estd::isubstream sourceFile = open(hardLink.second);
-					std::ofstream destinationFile = std::ofstream(extractPath, std::ios::out | std::ios::binary);
+					std::ofstream destinationFile =
+						std::ofstream(extractPath.string(), std::ios::out | std::ios::binary);
 					if (destinationFile.fail()) throw std::runtime_error("Tar: failed to create file: " + extractPath);
 					destinationFile << sourceFile.rdbuf();
 					destinationFile.close();
@@ -400,7 +401,8 @@ namespace tar {
 				} catch (...) { throw std::runtime_error("Tar: file stream could not be opened " + path.string()); }
 				wrapFilesystemCall([&] {
 					estd::files::createDirectories(destination.getAntiSuffix());
-					std::ofstream destinationFile = std::ofstream(destination, std::ios::out | std::ios::binary);
+					std::ofstream destinationFile =
+						std::ofstream(destination.string(), std::ios::out | std::ios::binary);
 					if (destinationFile.fail()) throw std::runtime_error("Tar: failed to create file: " + destination);
 					destinationFile << file.rdbuf();
 					destinationFile.close();
