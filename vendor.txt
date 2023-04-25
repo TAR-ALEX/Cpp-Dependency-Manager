@@ -25,6 +25,7 @@ git "https://github.com/ShiftMediaProject/liblzma.git" v5.4.1 "./" "./vendor/lib
 git "https://github.com/madler/zlib.git" master "./" "./vendor/zlib/",
 git "https://github.com/janbar/openssl-cmake.git" 392d455 "./" "./vendor/openssl-cmake/",
 git "https://github.com/facebook/zstd.git" d4871d5 "./" "./vendor/zstd/",
+rm "vendor/openssl-cmake/test/",
 
 (git "https://github.com/xz-mirror/xz.git" master "./" "./vendor/xz/",)(not used)
 

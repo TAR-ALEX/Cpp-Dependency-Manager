@@ -230,7 +230,7 @@ void parseGit(Element tokens) {
                 return;
             }
         }
-
+        // cout << "rm " << cache / ".git/" << endl;
         estd::files::remove(cache / ".git/");
     });
 
