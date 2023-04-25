@@ -230,6 +230,8 @@ void parseGit(Element tokens) {
                 return;
             }
         }
+
+        estd::files::remove(cache / ".git/");
     });
 
     parseMoveCache(cache, repoId, tokens.slice(3));
@@ -337,6 +339,13 @@ void parseInclude(Element cmd) {
     includePrefix = pwd;
 }
 
+void parseRemove(Element cmd){
+     if (cmd.size() != 2) throw runtime_error("invalid include command at " + cmd.location);
+     Path p = cmd[1]->getValue();
+     std::cout << cmd.getDiagnosticString() << std::endl; 
+     estd::files::remove(p);
+}
+
 void parseBlock(Element pt) {
     for (size_t i = 0; i < pt.size(); i++) {
         try {
@@ -356,6 +365,8 @@ void parseBlock(Element pt) {
                 parseDebRecurseDepth(pt[i].value());
             } else if (pt[i][0]->getName() == "deb") {
                 parseDebInstall(pt[i].value());
+            } else if (pt[i][0]->getName() == "rm") {
+                parseRemove(pt[i].value());
             } else if (pt[i][0]->getName() == "include") {
                 parseInclude(pt[i].value());
             } else {
