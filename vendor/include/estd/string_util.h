@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <set>
 #include <sstream>
 #include <string>
@@ -60,6 +61,13 @@ namespace estd {
             if (s.substr(pos_start) == "" && !includeEmpty) return res;
             res.push_back(s.substr(pos_start));
             return res;
+        }
+
+        inline static std::string fileToString(std::string path) {
+            std::ifstream file(path);
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            return buffer.str();
         }
 
         inline static std::string indent(std::string input, std::string indentation) {

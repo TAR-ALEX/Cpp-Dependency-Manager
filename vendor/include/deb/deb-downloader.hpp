@@ -53,6 +53,55 @@
 #include <set>
 
 namespace deb {
+	std::string getBuildArchitecture() {//Get current architecture, detectx nearly every architecture. Coded by Freak
+										//https://stackoverflow.com/a/66249936
+#if defined(__x86_64__) || defined(_M_X64)
+		return "x86_64";
+#elif defined(i386) || defined(__i386__) || defined(__i386) || defined(_M_IX86)
+		return "x86_32";
+#elif defined(__ARM_ARCH_2__)
+		return "ARM2";
+#elif defined(__ARM_ARCH_3__) || defined(__ARM_ARCH_3M__)
+		return "ARM3";
+#elif defined(__ARM_ARCH_4T__) || defined(__TARGET_ARM_4T)
+		return "ARM4T";
+#elif defined(__ARM_ARCH_5_) || defined(__ARM_ARCH_5E_)
+		return "ARM5"
+#elif defined(__ARM_ARCH_6T2_) || defined(__ARM_ARCH_6T2_)
+		return "ARM6T2";
+#elif defined(__ARM_ARCH_6__) || defined(__ARM_ARCH_6J__) || defined(__ARM_ARCH_6K__) || defined(__ARM_ARCH_6Z__) ||   \
+	defined(__ARM_ARCH_6ZK__)
+		return "ARM6";
+#elif defined(__ARM_ARCH_7__) || defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) ||   \
+	defined(__ARM_ARCH_7S__)
+		return "ARM7";
+#elif defined(__ARM_ARCH_7A__) || defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7S__)
+		return "ARM7A";
+#elif defined(__ARM_ARCH_7R__) || defined(__ARM_ARCH_7M__) || defined(__ARM_ARCH_7S__)
+		return "ARM7R";
+#elif defined(__ARM_ARCH_7M__)
+		return "ARM7M";
+#elif defined(__ARM_ARCH_7S__)
+		return "ARM7S";
+#elif defined(__aarch64__) || defined(_M_ARM64)
+		return "ARM64";
+#elif defined(mips) || defined(__mips__) || defined(__mips)
+		return "MIPS";
+#elif defined(__sh__)
+		return "SUPERH";
+#elif defined(__powerpc) || defined(__powerpc__) || defined(__powerpc64__) || defined(__POWERPC__) ||                  \
+	defined(__ppc__) || defined(__PPC__) || defined(_ARCH_PPC)
+		return "POWERPC";
+#elif defined(__PPC64__) || defined(__ppc64__) || defined(_ARCH_PPC64)
+		return "POWERPC64";
+#elif defined(__sparc__) || defined(__sparc)
+		return "SPARC";
+#elif defined(__m68k__)
+		return "M68K";
+#else
+		return "UNKNOWN";
+#endif
+	}
 	namespace {
 		using namespace std;
 		namespace fs = std::filesystem;
@@ -358,7 +407,8 @@ namespace deb {
 			if (recursionDepth <= 1) return;
 
 			estd::isubstream controlTarCompressedStream;
-			for (auto path : {"control.tar.xz", "control.tar.gz", "control.tar.zst", "control.tar.bz2", "control.tar"}) {
+			for (auto path :
+				 {"control.tar.xz", "control.tar.gz", "control.tar.zst", "control.tar.bz2", "control.tar"}) {
 				try {
 					controlTarCompressedStream = deb.open(path);
 					break;
@@ -392,6 +442,30 @@ namespace deb {
 			}
 		}
 
+		void autoDetectArch() {
+			if (getBuildArchitecture() == "x86_64") {
+				architecture = "binary-amd64";
+			} else if (getBuildArchitecture() == "x86_32") {
+				architecture = "binary-i386";
+			} else if (getBuildArchitecture() == "ARM64") {
+				architecture = "binary-arm64";
+			}
+		}
+
+		void autoInitSources() {
+			// in a debian based system just concat all sources list files.
+			if (estd::files::exists("/etc/apt/sources.list") && estd::files::isFile("/etc/apt/sources.list")) {
+				addSourcesFile("/etc/apt/sources.list");
+			}
+
+			if (estd::files::exists("/etc/apt/sources.list.d/") &&
+				estd::files::isDirectory("/etc/apt/sources.list.d/")) {
+				for (auto& e : estd::files::RecursiveDirectoryIterator("/etc/apt/sources.list.d/")) {
+					if (!e.is_directory()) { addSourcesFile(e.path()); }
+				}
+			}
+		}
+
 
 	public:
 		std::string architecture = "binary-amd64";
@@ -404,14 +478,37 @@ namespace deb {
 
 		uint16_t minPermissions = 0777;
 
-		Installer() {}
+		Installer() {
+			autoDetectArch();
+			autoInitSources();
+		}
 
-		Installer(vector<string> l, estd::joint_ptr<estd::files::TmpDir> tmp = nullptr) : sourcesList(l) {
+		Installer(estd::joint_ptr<estd::files::TmpDir> tmp = nullptr) {
+			autoDetectArch();
+			autoInitSources();
 			if (tmp) {
 				tmpDirectory = tmp;
 			} else {
 				tmpDirectory = new estd::files::TmpDir();
 			}
+		}
+
+		void addSourcesFile(estd::files::Path filepath) {
+			std::string fileContents = estd::string_util::fileToString(filepath.string());
+			auto rex = boost::regex{"#[^\\n]*"};
+			auto noCommentsList = boost::regex_replace(fileContents, rex, "");
+			noCommentsList = estd::string_util::replace_all(noCommentsList, "\r", "");
+			auto rex2 = boost::regex{"deb\\s*?\\[.*\\]"};
+			noCommentsList =
+				boost::regex_replace(noCommentsList, rex2, "deb");// remove blocks with arch line so deb [arch=...]
+			auto list = estd::string_util::splitAll(noCommentsList, "\n", false);
+			addSources(list);
+			packageToUrl = {};
+		}
+
+		void addSources(vector<string> l) {
+			sourcesList.insert(sourcesList.end(), l.begin(), l.end());
+			packageToUrl = {};
 		}
 
 		void setSources(vector<string> l) {

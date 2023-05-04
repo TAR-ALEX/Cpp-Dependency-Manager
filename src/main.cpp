@@ -281,7 +281,8 @@ void parseDebInit(Element tokens) {
             }
             sources.push_back(line->getString());
         }
-        debInstaller = new deb::Installer(sources, new TmpDir(temp->path()));
+
+        debInstaller->setSources(sources);
         debInstaller->throwOnFailedDependency = false;
     } else {
         cout << "[WARNING] bad arguments for deb-repo statement at " + tokens.location << endl;
@@ -386,6 +387,7 @@ int main() {
     try {
         srand(time(nullptr));
         temp = new estd::files::TmpDir();
+        debInstaller = new deb::Installer(new TmpDir(temp->path()));
         repoCache = new RepoCache(temp);
         parseInclude(Element({Token("include"), Token("vendor.txt")}));
 

@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
-option(BUILD_LIBS_FROM_SCRATCH "BUILD LIBRARIES FROM SCRATCH, almost no dependencies link wise" OFF)
+option(BUILD_LIBS_FROM_SCRATCH "BUILD LIBRARIES FROM SCRATCH, almost no dependencies link wise" ON)
 
 set(LIB_SEARCH_DIR "${CMAKE_SOURCE_DIR}/vendor/lib/")
 
@@ -46,7 +46,7 @@ include_directories(
 )
 
 
-file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS "./src/*.cpp" "./vendor/src/*.cpp")
+file(GLOB_RECURSE APP_SOURCES CONFIGURE_DEPENDS "./src/*" "./include/*" "./vendor/src/*" "./vendor/include/*")
 
 add_executable(${PROJECT_NAME} ${APP_SOURCES})
 
