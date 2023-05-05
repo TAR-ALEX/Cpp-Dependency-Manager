@@ -263,15 +263,27 @@ namespace deb {
 			std::vector<std::map<std::string, std::string>> packageToUrlMaps;
 			packageToUrlMaps.resize(urls.size());
 			int k = 0;
+			std::atomic_int32_t successfulSources = 0;
 			for (const auto& entry : urls) {
 				auto* mapToPlace = &packageToUrlMaps[k];
 				k++;
-				trm.schedule([=, this]() {
+				trm.schedule([=, &successfulSources, this]() {
 					string listUrl;
 					string baseUrl;
 					tie(baseUrl, listUrl) = entry;
 
-					stringstream compressed(downloadString(listUrl));
+					stringstream compressed;
+
+					try {
+						compressed = stringstream{downloadString(listUrl)};
+						successfulSources++;
+					} catch (...) {
+						std::string errm = "Failed to fetch URL " + listUrl;
+						if (throwOnFailedSourceURL) throw std::runtime_error(errm);
+						else
+							cout << errm;
+					}
+
 					bxz::istream decompressed(compressed);
 					stringstream ss;
 					ss << decompressed.rdbuf();
@@ -314,6 +326,8 @@ namespace deb {
 				});
 			}
 			trm.wait();
+			if (successfulSources == 0)
+				throw std::runtime_error("All sources urls failed to fetch / or none were provided.");
 			for (auto& m : packageToUrlMaps) { packageToUrl.insert(m.begin(), m.end()); }
 			// for(const auto& elem : packageToUrl){
 			//     cout << elem.first << " -> " << elem.second << "\n";
@@ -472,6 +486,7 @@ namespace deb {
 		estd::joint_ptr<estd::files::TmpDir> tmpDirectory;
 		int recursionLimit = 9999;
 		bool throwOnFailedDependency = true;
+		bool throwOnFailedSourceURL = false;
 		// dont do this, there can be links among different packages like libX.so linking to libX.so.5.1.1 which can mess up linking with ld
 		bool extractHardLinksAsCopies = false;
 		bool extractSoftLinksAsCopies = false;

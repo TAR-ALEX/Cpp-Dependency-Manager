@@ -8,5 +8,5 @@
 /vendor/zlib/.git/
 /vendor/xz/.git/
 /vendor/zstd/.git/
-/git-vendor
-/git-vendor.exe
+/dep-pull
+/dep-pull.exe
