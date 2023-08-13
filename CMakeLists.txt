@@ -9,6 +9,7 @@ option(BUILD_LIBS_FROM_SCRATCH "BUILD LIBRARIES FROM SCRATCH, almost no dependen
 
 set(LIB_SEARCH_DIR "${CMAKE_SOURCE_DIR}/vendor/lib/")
 
+# We dont need these and for some reason they cause build errors with ninja
 set(CREATE_XZ_SYMLINKS OFF CACHE BOOL "enable CREATE_XZ_SYMLINKS functionality" FORCE)
 set(CREATE_LZMA_SYMLINKS OFF CACHE BOOL "enable CREATE_LZMA_SYMLINKS functionality" FORCE)
 
