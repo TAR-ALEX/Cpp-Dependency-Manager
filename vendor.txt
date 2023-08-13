@@ -16,7 +16,7 @@ git "https://github.com/TAR-ALEX/big_numbers_cpp.git" master "./include/" "./ven
 git "https://github.com/TAR-ALEX/estd-string-util.git" master "./include/" "./vendor/include/",
 git "https://github.com/TAR-ALEX/omtl_parser_cpp.git" master "./include/" "./vendor/include/",
 git "https://github.com/TAR-ALEX/estd_filesystem.git" master "./include/" "./vendor/include/",
-git "https://github.com/LizaTarasova/EstdAnsiEscape.git" master "./include/" "./vendor/include/",
+git "https://github.com/TAR-ALEX/EstdAnsiEscape.git" master "./include/" "./vendor/include/",
 
 git "https://github.com/arun11299/cpp-subprocess.git" master "./subprocess.hpp" "./vendor/include/subprocess/subprocess.hpp",
 
@@ -26,10 +26,3 @@ git "https://github.com/madler/zlib.git" master "./" "./vendor/zlib/",
 git "https://github.com/janbar/openssl-cmake.git" 392d455 "./" "./vendor/openssl-cmake/",
 git "https://github.com/facebook/zstd.git" d4871d5 "./" "./vendor/zstd/",
 rm "vendor/openssl-cmake/test/",
-
-(git "https://github.com/xz-mirror/xz.git" master "./" "./vendor/xz/",)(not used)
-
-(
-tar "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz" "./boost_1_79_0/boost/" "./vendor/include/boost/",
-tar "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.gz" "./boost_1_79_0/libs/regex/src/" "./vendor/src/boost/regex",
-)
