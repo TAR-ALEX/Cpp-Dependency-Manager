@@ -63,7 +63,7 @@ std::vector<Token> Tokenizer::tokenize(std::string filename) {
 std::vector<Token> Tokenizer::tokenize(std::istream& infile, std::string filename) {
     char c;
     bool inString = false;
-    bool inComment = false;
+    int inComment = 0;
     std::vector<Token> tokens;
     Token token;
     int lineNumber = 1;
@@ -112,14 +112,14 @@ std::vector<Token> Tokenizer::tokenize(std::istream& infile, std::string filenam
             } else {
                 token.rawValue += c;
             }
-        } else if (inComment) {
+        } else if (inComment != 0) {
             token.dataType = Token::comment;
+            token.rawValue += c;
             if (c == ')') {
-                token.rawValue += c;
                 if (token.rawValue != "") insertToken(token);
-                inComment = false;
-            } else {
-                token.rawValue += c;
+                inComment--;
+            } else if (c == '(') {
+                inComment++;
             }
         } else {
             token.dataType = Token::name;
@@ -142,7 +142,7 @@ std::vector<Token> Tokenizer::tokenize(std::istream& infile, std::string filenam
                 updateLocation();
                 token.rawValue = "";
                 token.rawValue += c;
-                inComment = true;
+                inComment++;
             } else {
                 if (token.location == "") updateLocation();
                 token.rawValue += c;

@@ -21,7 +21,7 @@ git "https://github.com/LizaTarasova/EstdAnsiEscape.git" master "./include/" "./
 git "https://github.com/arun11299/cpp-subprocess.git" master "./subprocess.hpp" "./vendor/include/subprocess/subprocess.hpp",
 
 git "https://github.com/sergiud/bzip2.git" c4a14bb "./" "./vendor/bzip2/", (cmake)
-git "https://github.com/ShiftMediaProject/liblzma.git" v5.4.1 "./" "./vendor/liblzma/",
+git "https://github.com/ShiftMediaProject/liblzma.git" v5.4.3 "./" "./vendor/liblzma/",
 git "https://github.com/madler/zlib.git" master "./" "./vendor/zlib/",
 git "https://github.com/janbar/openssl-cmake.git" 392d455 "./" "./vendor/openssl-cmake/",
 git "https://github.com/facebook/zstd.git" d4871d5 "./" "./vendor/zstd/",

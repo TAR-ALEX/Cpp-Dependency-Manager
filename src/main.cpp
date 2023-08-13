@@ -340,11 +340,11 @@ void parseInclude(Element cmd) {
     includePrefix = pwd;
 }
 
-void parseRemove(Element cmd){
-     if (cmd.size() != 2) throw runtime_error("invalid include command at " + cmd.location);
-     Path p = cmd[1]->getValue();
-     std::cout << cmd.getDiagnosticString() << std::endl; 
-     estd::files::remove(p);
+void parseRemove(Element cmd) {
+    if (cmd.size() != 2) throw runtime_error("invalid include command at " + cmd.location);
+    Path p = cmd[1]->getValue();
+    std::cout << cmd.getDiagnosticString() << std::endl;
+    estd::files::remove(p);
 }
 
 void parseBlock(Element pt) {
@@ -387,6 +387,11 @@ int main() {
     try {
         srand(time(nullptr));
         temp = new estd::files::TmpDir();
+        {
+            std::ofstream ff(temp->path() / ".gitignore");
+            ff << "*";
+            ff.close();
+        }
         debInstaller = new deb::Installer(new TmpDir(temp->path()));
         repoCache = new RepoCache(temp);
         parseInclude(Element({Token("include"), Token("vendor.txt")}));

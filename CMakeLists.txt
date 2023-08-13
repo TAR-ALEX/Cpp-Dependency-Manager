@@ -9,6 +9,9 @@ option(BUILD_LIBS_FROM_SCRATCH "BUILD LIBRARIES FROM SCRATCH, almost no dependen
 
 set(LIB_SEARCH_DIR "${CMAKE_SOURCE_DIR}/vendor/lib/")
 
+set(CREATE_XZ_SYMLINKS OFF CACHE BOOL "enable CREATE_XZ_SYMLINKS functionality" FORCE)
+set(CREATE_LZMA_SYMLINKS OFF CACHE BOOL "enable CREATE_LZMA_SYMLINKS functionality" FORCE)
+
 if(MSVC OR BUILD_LIBS_FROM_SCRATCH OR APPLE)
     add_subdirectory(vendor/zlib)
     add_subdirectory(vendor/bzip2)

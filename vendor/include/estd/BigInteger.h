@@ -115,14 +115,14 @@ namespace estd {
             if (right == 0 || left == 0) return 0;
             uint64_t buffer = 0;
 
-            BigInteger result = 0;
+            BigInteger result = nullptr;
 
             uint64_t vLeft;
             uint64_t vRight;
 
             int prepush = 0;
             for (auto iRight = right.number.rbegin(); iRight != right.number.rend(); ++iRight) {
-                BigInteger tmp;
+                BigInteger tmp = nullptr;
                 for (int i = 0; i < prepush; i++) tmp.number.push_front(0);
                 prepush++;
                 for (auto iLeft = left.number.rbegin(); iLeft != left.number.rend(); ++iLeft) {
@@ -216,6 +216,7 @@ namespace estd {
     public:
         //Constructors
         BigInteger() { this->operator=(int64_t(0)); };
+        BigInteger(std::nullptr_t){};
         BigInteger(std::string val) { this->operator=(val); }
         BigInteger(const char* val) { this->operator=(val); }
         // template for integer types
@@ -257,11 +258,18 @@ namespace estd {
                 if (left < 0) left = 0;
             }
             trimLeadingZeros();
+            if (isZero()) { isNegative = false; }
             return *this;
         }
 
         BigInteger& operator=(intmax_t n) {
             number.clear();
+
+            if (n == 0) {
+                number.push_front(0);
+                return *this;
+            }
+
             isNegative = false;
             if (n < 0) {
                 n = -n;
@@ -278,6 +286,11 @@ namespace estd {
 
         BigInteger& operator=(uintmax_t n) {
             number.clear();
+
+            if (n == 0) {
+                number.push_front(0);
+                return *this;
+            }
 
             isNegative = false;
 
@@ -330,7 +343,7 @@ namespace estd {
 
         BigInteger operator*(BigInteger right) const {
             const BigInteger& left = *this;
-            BigInteger result = 0;
+            BigInteger result;
 
             result = unsignedMultiply(left, right);
             if (left.isNegative != right.isNegative) result.isNegative = true;
@@ -398,7 +411,7 @@ namespace estd {
         bool operator==(const BigInteger& right) const {
             const BigInteger& left = *this;
 
-            if (left.isZero() && left.isZero()) return true;
+            if (left.isZero() && right.isZero()) return true;
             if (left.number.size() != right.number.size()) return false;
             if (left.isNegative != right.isNegative) return false;
             for (size_t i = 0; i < left.number.size(); i++) {

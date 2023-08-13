@@ -114,7 +114,6 @@ namespace omtl {
         Element parseTuple(std::vector<Token>& tokens, size_t& i);
 
     public:
-        estd::ostream_proxy log{&std::cout};
         Element buildParseTree(std::vector<Token> vector);
     };
 
