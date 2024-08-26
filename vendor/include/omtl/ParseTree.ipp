@@ -46,6 +46,7 @@ size_t ParseTreeBuilder::findMatchingBracket(std::vector<Token>& tokens, size_t 
     }
 }
 
+//TODO: delete is deprecated
 bool ParseTreeBuilder::isTuple(std::vector<Token>& tokens, size_t i) {
     for (; i < tokens.size(); i++) {
         if (tokens[i].getRaw() == "[") break;
@@ -73,20 +74,14 @@ Element ParseTreeBuilder::parseStatement(std::vector<Token>& tokens, size_t& i) 
     result.statement = std::deque<Element>();
     if (tokens.size() > i) result.location = tokens[i].location;
     for (;;) {
-        if (i >= tokens.size()) { throw std::runtime_error("statement did not end: " + result.location); } // error
-        if (tokens[i].getRaw() == ",") break;                                                              // done
-        if (tokens[i].getRaw() == "]") break;                                                              // done
+        //if (i >= tokens.size()) { throw std::runtime_error("statement did not end: " + result.location); } // error
+        if (i >= tokens.size()) { break; }    // done
+        if (tokens[i].getRaw() == ",") break; // done
+        if (tokens[i].getRaw() == "]") break; // done
+        if (tokens[i].getRaw() == ":") {throw std::runtime_error("statement did not expect a colon at: " + tokens[i].location);}
         if (tokens[i].getRaw() == "[") {
-            if (isTuple(tokens, i)) {
-                Element elem = parseTuple(tokens, i);
-                result.statement->push_back(elem);
-            } else {
-                Element elem;
-                i++;
-                elem = parseStatement(tokens, i);
-                i++;
-                result.statement->push_back(elem);
-            }
+            Element elem = parseTuple(tokens, i);
+            result.statement->push_back(elem);
         } else {
             Element elem;
             elem.value = tokens[i];
@@ -105,21 +100,35 @@ Element ParseTreeBuilder::parseStatement(std::vector<Token>& tokens, size_t& i) 
  [a: 1, b: 2, c: 3, d: [e: 4, f: 5 + 4],]
  ```
  */
-Element ParseTreeBuilder::parseTuple(std::vector<Token>& tokens, size_t& i) {
+Element ParseTreeBuilder::parseTuple(std::vector<Token>& tokens, size_t& i, bool isRoot) {
     Element result;
     result.tuple = std::deque<std::pair<std::string, Element>>();
-    for (; i < tokens.size(); i++) {
-        if (tokens[i].getRaw() == "[") {
-            result.location = tokens[i].location;
-            break;
+    if (isRoot) {
+        result.location = tokens[i].location;
+    } else {
+        for (; i < tokens.size(); i++) {
+            if (tokens[i].getRaw() == "[") {
+                result.location = tokens[i].location;
+                break;
+            }
         }
+        i++; // advance inside
     }
-    i++;
     for (;;) {
-        if (i >= tokens.size()) { throw std::runtime_error("tuple did not end: " + result.location); } // error
-        if (tokens[i].getRaw() == "]") {
-            i++;
-            break;
+        if (isRoot) {
+            if (i >= tokens.size()) {
+                break;
+            }
+            if (tokens[i].getRaw() == "]") {
+                throw std::runtime_error("tuple too many closing braces: " + result.location); 
+                break;
+            }
+        }else{
+            if (i >= tokens.size()) { throw std::runtime_error("tuple did not end: " + result.location); } // error
+            if (tokens[i].getRaw() == "]") {
+                i++;
+                break;
+            }
         }
         if (tokens[i].getRaw() == ":") {
             throw std::runtime_error("unexpected colon in tuple at: " + tokens[i].location);
@@ -133,6 +142,13 @@ Element ParseTreeBuilder::parseTuple(std::vector<Token>& tokens, size_t& i) {
         if (i + 1 < tokens.size() && tokens[i + 1].getRaw() == ":") {
             if (!tokens[i].isName()) // TODO: support strings, only names are supported for now
                 throw std::runtime_error("unexpected tag in tuple at: " + tokens[i].location);
+            if (i + 2 >= tokens.size() ||
+                tokens[i + 2].getRaw() == ","){ // we have a named item with an empty statement under it.
+                //throw std::runtime_error("empty statement in tuple at: " + tokens[i].location);
+                //skip over it instead
+                i += 3;
+                continue;
+            }
             name = tokens[i].getRaw();
             i += 2;
             statement = parseStatement(tokens, i);
@@ -146,10 +162,10 @@ Element ParseTreeBuilder::parseTuple(std::vector<Token>& tokens, size_t& i) {
 }
 
 Element ParseTreeBuilder::buildParseTree(std::vector<Token> tokens) {
-    tokens.insert(tokens.begin(), Token("[", "START"));
-    tokens.push_back(Token("]", "END"));
+    // tokens.insert(tokens.begin(), Token("[", "START"));
+    // tokens.push_back(Token("]", "END"));
     size_t startIndex = 0;
-    return parseTuple(tokens, startIndex);
+    return parseTuple(tokens, startIndex, true);
 }
 
 Element::Element() {}
@@ -329,6 +345,7 @@ Element Element::slice(size_t left, size_t right) {
 
 
 bool Element::isTuple() { return this->tuple != nullptr; }
+bool Element::isEmptyTuple() { return this->tuple != nullptr && this->tuple->size() == 0; }
 bool Element::isStatement() { return this->statement != nullptr; }
 bool Element::isToken() {
     Element& e = getSingleElement();

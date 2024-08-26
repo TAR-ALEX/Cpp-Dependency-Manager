@@ -13,9 +13,9 @@ namespace estd {
 
     protected:
         estd::BigInteger parent = 0;
-        size_t index = 0;
+        size_t index = 0; // this defines how many digits in base 10 are after the decimal point.
 
-        void addTrailZeros(size_t z) {
+        inline void addTrailZeros(size_t z) {
             while (z % 9 != 0) {
                 z -= 1;
                 index += 1;
@@ -28,7 +28,7 @@ namespace estd {
             }
         }
 
-        BigDecimal& removeAllDecimals() {
+        inline BigDecimal& removeAllDecimals() {
             while (index >= 9 && parent.number.size() > 0) {
                 parent.number.pop_back();
                 index -= 9;
@@ -46,17 +46,14 @@ namespace estd {
             return *this;
         }
 
-        BigDecimal& trimTrailingZeros() {
-            while (index >= 9 && parent.number.size() > 0 && parent.number[parent.number.size() - 1] == 0) {
-                if(parent.number.size() == 1 && parent.number[0] == 0) {//special case, return to avoid removing everything
-                    index = 0;
-                    break;
-                }
+        inline BigDecimal& trimTrailingZeros() {
+            while (index >= 9 && parent.number.size() > 1 && parent.number[parent.number.size() - 1] == 0) {
                 parent.number.pop_back();
                 index -= 9;
             }
             while (index > 0 && parent.number.size() > 0 && parent.number[parent.number.size() - 1] % 10 == 0) {
-                if(parent.number.size() == 1 && parent.number[0] == 0) {//special case, return to avoid removing everything
+                if (parent.number.size() == 1 &&
+                    parent.number[0] == 0) { //special case, this is a zero, return to avoid removing everything
                     index = 0;
                     break;
                 }
@@ -67,7 +64,7 @@ namespace estd {
             return *this;
         }
 
-        size_t alignDecimals(BigDecimal& left, BigDecimal& right) const {
+        inline size_t alignDecimals(BigDecimal& left, BigDecimal& right) const {
             if (left.index < right.index) {
                 left.addTrailZeros(right.index - left.index);
             } else if (left.index > right.index) {
@@ -77,35 +74,30 @@ namespace estd {
         }
 
     public:
-        BigDecimal() { this->operator=(int64_t(0)); };
-        BigDecimal(std::nullptr_t) : parent(nullptr){};
-        BigDecimal(std::string val) { this->operator=(val); }
-        BigDecimal(const char* val) { this->operator=(val); }
-        BigDecimal(float val) { this->operator=(val); }
-        BigDecimal(double val) { this->operator=(val); }
+        inline BigDecimal() { this->operator=(int64_t(0)); };
+        inline BigDecimal(std::nullptr_t) : parent(nullptr){};
+        inline BigDecimal(std::string val) { this->operator=(val); }
+        inline BigDecimal(const char* val) { this->operator=(val); }
+        inline BigDecimal(float val) { this->operator=(val); }
+        inline BigDecimal(double val) { this->operator=(val); }
         // template for integer types
         template <class T, typename std::enable_if<std::is_integral<T>::value>::type* = nullptr>
-        BigDecimal(T val) {
+        inline BigDecimal(T val) {
             this->operator=(val);
         };
 
-        BigDecimal& operator=(const char* strNum) { return operator=(std::string(strNum)); }
+        inline BigDecimal& operator=(const char* strNum) { return operator=(std::string(strNum)); }
 
-        BigDecimal& operator=(std::string strNum) {
+        inline void parsePositiveBase10(std::string strNum) {
             if (strNum.size() == 0) throw std::invalid_argument("Cannot parse BigDecimal");
-
-            if (strNum[0] == '-') {
-                parent.isNegative = true;
-                strNum = strNum.substr(1);
-            }
 
             size_t pointIdx = strNum.length();
             for (size_t i = 0; i < strNum.length(); i++) {
                 if (strNum[i] == '.') {
+                    // if there is more than 1 point
                     if (pointIdx != strNum.length()) throw std::invalid_argument("Cannot parse BigDecimal");
                     pointIdx = i;
-                } else if (strNum[i] < '0' || strNum[i] > '9')
-                    throw std::invalid_argument("Cannot parse BigDecimal");
+                }
             }
 
             if (pointIdx != strNum.length()) {
@@ -116,31 +108,88 @@ namespace estd {
             if (strNum.size() == 0) throw std::invalid_argument("Cannot parse BigDecimal");
 
             parent.operator=(strNum);
+        }
+
+        inline void parsePositiveBaseN(const uint8_t base, std::string strNum) {
+            if (strNum.size() <= 2) throw std::invalid_argument("Cannot parse BigDecimal");
+
+            std::string prefix = strNum.substr(0, 2);
+
+            size_t pointIdx = strNum.length();
+            for (size_t i = 0; i < strNum.length(); i++) {
+                if (strNum[i] == '.') {
+                    // if there is more than 1 point
+                    if (pointIdx != strNum.length()) throw std::invalid_argument("Cannot parse BigDecimal");
+                    pointIdx = i;
+                }
+            }
+
+            std::string leftNum = strNum.substr(0, pointIdx);
+
+            parent.operator=(leftNum);
+
+            std::string rightNum = "";
+            if (strNum.length() != pointIdx) {
+                rightNum = prefix + strNum.substr(pointIdx + 1);
+
+                BigDecimal dec = BigInteger(rightNum);
+                BigDecimal numDiv2 = rightNum.size() - 2;
+                if (base == 8) numDiv2 *= 3;
+                else if (base == 16)
+                    numDiv2 *= 4;
+                *this += dec * BigDecimal("0.5").power(numDiv2);
+            }
+
+            if (leftNum.size() == 0 && rightNum.size() == 0) throw std::invalid_argument("Cannot parse BigDecimal");
+        }
+
+
+        inline BigDecimal& operator=(std::string strNum) {
+            if (strNum.size() == 0) throw std::invalid_argument("Cannot parse BigDecimal");
+
+            bool isNegative = false;
+
+            if (strNum[0] == '-') {
+                isNegative = true;
+                strNum = strNum.substr(1);
+            }
+
+            if (strNum.substr(0, 2) == "0x") {
+                parsePositiveBaseN(16, strNum);
+            } else if (strNum.substr(0, 2) == "0o") {
+                parsePositiveBaseN(8, strNum);
+            } else if (strNum.substr(0, 2) == "0b") {
+                parsePositiveBaseN(2, strNum);
+            } else {
+                parsePositiveBase10(strNum);
+            }
+
+            parent.isNegative = isNegative;
 
             return trimTrailingZeros();
         }
         // template for integer types
         template <class T, typename std::enable_if<std::is_integral<T>::value>::type* = nullptr>
-        BigDecimal& operator=(T n) {
+        inline BigDecimal& operator=(T n) {
             parent.operator=(n);
             index = 0;
             return *this;
         }
 
-        BigDecimal& operator=(double n) {
+        inline BigDecimal& operator=(double n) {
             std::ostringstream ss;
             ss << std::fixed << std::setprecision(200) << n;
             return operator=(ss.str()).trimTrailingZeros();
         }
 
-        BigDecimal& operator=(float n) {
+        inline BigDecimal& operator=(float n) {
             std::ostringstream ss;
             ss << std::fixed << std::setprecision(200) << n;
             return operator=(ss.str()).trimTrailingZeros();
         }
 
         //Operations
-        BigDecimal operator+(BigDecimal right) const {
+        inline BigDecimal operator+(BigDecimal right) const {
             BigDecimal left = *this;
             size_t idx = alignDecimals(left, right);
             BigDecimal result = left.parent.operator+(right.parent);
@@ -148,9 +197,9 @@ namespace estd {
             return result.trimTrailingZeros();
         }
 
-        BigDecimal& operator+=(const BigDecimal& right) { return (*this) = (*this) + right; }
+        inline BigDecimal& operator+=(const BigDecimal& right) { return (*this) = (*this) + right; }
 
-        BigDecimal operator-(BigDecimal right) const {
+        inline BigDecimal operator-(BigDecimal right) const {
             BigDecimal left = *this;
             size_t idx = alignDecimals(left, right);
             BigDecimal result = left.parent.operator-(right.parent);
@@ -158,18 +207,18 @@ namespace estd {
             return result.trimTrailingZeros();
         }
 
-        BigDecimal& operator-=(const BigDecimal& right) { return (*this) = (*this) - right; }
+        inline BigDecimal& operator-=(const BigDecimal& right) { return (*this) = (*this) - right; }
 
-        BigDecimal operator*(BigDecimal right) const {
+        inline BigDecimal operator*(BigDecimal right) const {
             const BigDecimal& left = *this;
             BigDecimal result = left.parent.operator*(right.parent);
             result.index = left.index + right.index;
             return result.trimTrailingZeros();
         }
 
-        BigDecimal& operator*=(const BigDecimal& right) { return (*this) = (*this) * right; }
+        inline BigDecimal& operator*=(const BigDecimal& right) { return (*this) = (*this) * right; }
 
-        BigDecimal operator/(BigDecimal right) {
+        inline BigDecimal operator/(BigDecimal right) {
             BigDecimal left = *this;
             alignDecimals(left, right);
             BigDecimal result = left.parent.operator/(right.parent);
@@ -177,9 +226,9 @@ namespace estd {
             return result.trimTrailingZeros();
         }
 
-        BigDecimal& operator/=(const BigDecimal& right) { return (*this) = (*this) / right; }
+        inline BigDecimal& operator/=(const BigDecimal& right) { return (*this) = (*this) / right; }
 
-        BigDecimal operator%(BigDecimal right) {
+        inline BigDecimal operator%(BigDecimal right) {
             BigDecimal left = *this;
             size_t idx = alignDecimals(left, right);
             BigDecimal result = left.parent.operator%(right.parent);
@@ -187,9 +236,9 @@ namespace estd {
             return result.trimTrailingZeros();
         }
 
-        BigDecimal& operator%=(const BigDecimal& right) { return (*this) = (*this) % right; }
+        inline BigDecimal& operator%=(const BigDecimal& right) { return (*this) = (*this) % right; }
 
-        BigDecimal power(BigDecimal p) {
+        inline BigDecimal power(BigDecimal p) {
             if (p.index != 0) throw std::invalid_argument("Power cannot be a fraction");
             const BigDecimal& left = *this;
             BigDecimal result = left.parent.power(p.parent);
@@ -197,56 +246,56 @@ namespace estd {
             return result.trimTrailingZeros();
         }
 
-        BigDecimal operator++(int) {
+        inline BigDecimal operator++(int) {
             BigDecimal oldThis = *this;
             *this = *this + 1;
             return oldThis;
         };
-        BigDecimal& operator++() {
+        inline BigDecimal& operator++() {
             *this = *this + 1;
             return *this;
         };
-        BigDecimal operator--(int) {
+        inline BigDecimal operator--(int) {
             BigDecimal oldThis = *this;
             *this = *this - 1;
             return oldThis;
         };
-        BigDecimal& operator--() {
+        inline BigDecimal& operator--() {
             *this = *this - 1;
             return *this;
         };
 
-        bool operator==(BigDecimal right) const {
+        inline bool operator==(BigDecimal right) const {
             BigDecimal left = *this;
             alignDecimals(left, right);
             return left.parent.operator==(right.parent);
         }
 
-        bool operator!=(BigDecimal right) const {
+        inline bool operator!=(BigDecimal right) const {
             BigDecimal left = *this;
             alignDecimals(left, right);
             return left.parent.operator!=(right.parent);
         }
 
-        bool operator>(BigDecimal right) const {
+        inline bool operator>(BigDecimal right) const {
             BigDecimal left = *this;
             alignDecimals(left, right);
             return left.parent.operator>(right.parent);
         }
 
-        bool operator>=(BigDecimal right) const {
+        inline bool operator>=(BigDecimal right) const {
             BigDecimal left = *this;
             alignDecimals(left, right);
             return left.parent.operator>=(right.parent);
         }
 
-        bool operator<(BigDecimal right) const {
+        inline bool operator<(BigDecimal right) const {
             BigDecimal left = *this;
             alignDecimals(left, right);
             return left.parent.operator<(right.parent);
         }
 
-        bool operator<=(BigDecimal right) const {
+        inline bool operator<=(BigDecimal right) const {
             BigDecimal left = *this;
             alignDecimals(left, right);
             return left.parent.operator<=(right.parent);
@@ -259,14 +308,16 @@ namespace estd {
         // BigDecimal operator<<(const BigDecimal& right) const;
         // BigDecimal operator>>(const BigDecimal& right) const;
 
-        friend std::ostream& operator<<(std::ostream& out, const BigDecimal& right) { return out << right.toString(); }
-        friend std::istream& operator>>(std::istream& in, BigDecimal& right); //TODO
+        inline friend std::ostream& operator<<(std::ostream& out, const BigDecimal& right) {
+            return out << right.toString();
+        }
+        inline friend std::istream& operator>>(std::istream& in, BigDecimal& right); //TODO
 
-        uintmax_t toUint() const { return toBigInt().toUint(); }
-        intmax_t toInt() const { return toBigInt().toInt(); }
+        inline uintmax_t toUint() const { return toBigInt().toUint(); }
+        inline intmax_t toInt() const { return toBigInt().toInt(); }
         // template for integer types
         template <class T, typename std::enable_if<std::is_integral<T>::value>::type* = nullptr>
-        explicit operator T() {
+        inline explicit operator T() {
             if constexpr (std::is_unsigned<T>::value) {
                 return toUint();
             } else {
@@ -274,7 +325,7 @@ namespace estd {
             }
         }
 
-        std::string toString() const {
+        inline std::string toString() const {
             if (parent.number.size() == 0) return "nan";
             std::string str = parent.toString();
 
@@ -285,7 +336,7 @@ namespace estd {
             return str;
         }
 
-        BigInteger toBigInt() const {
+        inline BigInteger toBigInt() const {
             if (index == 0) {
                 return parent;
             } else {
@@ -296,7 +347,7 @@ namespace estd {
             }
         }
 
-        explicit operator BigInteger() const { return toBigInt(); }
+        inline explicit operator BigInteger() const { return toBigInt(); }
 
         // TODO:
         // DEFINE_BIN_OP(^) // makes no sense for long ints, will just be all 1s  if we assume leading zeros
@@ -310,7 +361,7 @@ namespace estd {
 
     typedef BigDecimal BigDec;
 
-    BigInteger::operator BigDecimal() {
+    inline BigInteger::operator BigDecimal() {
         BigDecimal r;
         r.parent.number = number;
         r.parent.isNegative = isNegative;

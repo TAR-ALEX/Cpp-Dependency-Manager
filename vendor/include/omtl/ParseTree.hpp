@@ -86,6 +86,7 @@ namespace omtl {
         void pushBack(std::string n, Element e);
 
         bool isTuple();
+        bool isEmptyTuple();
         bool isStatement();
         bool isToken();
 
@@ -111,7 +112,7 @@ namespace omtl {
         size_t findMatchingBracket(std::vector<Token>& tokens, size_t i);
         bool isTuple(std::vector<Token>& tokens, size_t i);
         Element parseStatement(std::vector<Token>& tokens, size_t& i);
-        Element parseTuple(std::vector<Token>& tokens, size_t& i);
+        Element parseTuple(std::vector<Token>& tokens, size_t& i, bool isRoot = false);
 
     public:
         Element buildParseTree(std::vector<Token> vector);

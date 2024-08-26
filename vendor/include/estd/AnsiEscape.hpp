@@ -1,6 +1,6 @@
 // BSD 3-Clause License
 
-// Copyright (c) 2022, Liza Tarasova
+// Copyright (c) 2024, Alex Tarasov
 // All rights reserved.
 
 // Redistribution and use in source and binary forms, with or without
@@ -38,6 +38,7 @@
 #endif
 
 #include <iostream>
+#include <tuple>
 
 namespace estd {
     //declaring variables to input with the help of arrow, space, and enter keys
@@ -92,15 +93,15 @@ namespace estd {
     }
 
     //clears a full line in the terminal
-    const std::string saveCursorPosition = "\e[s";
-    const std::string restoreCursorPosition = "\e[u";
+    const std::string saveCursorPosition = "\033[s";
+    const std::string restoreCursorPosition = "\033[u";
     inline std::string scroll(int y) {
         if(y < 0) {return "\033[" + std::to_string(y) + "S"; }
         return "\033[" + std::to_string(y) + "T";
     }
 
     inline std::string resizeWindow(int x,int y) {
-        return "\e[8;"+std::to_string(y)+";"+std::to_string(x)+"t";
+        return "\033[8;"+std::to_string(y)+";"+std::to_string(x)+"t";
     }
     
 
@@ -118,6 +119,41 @@ namespace estd {
 
     //clears the screen
     const std::string clearScreen = moveCursor(0, 0) + clearAfterCursor;
+
+    /**
+     * Converts HSV color values to RGB.
+     *
+     * @param h Hue value (0-360) converted to 0-1
+     * @param s Saturation value (0-100) converted to 0-1
+     * @param v Value value (0-100) converted to 0-1
+     * @return RGB color values as a tuple { red, green, blue }
+     */
+    std::tuple<int, int, int> hsv_to_rgb(double h, double s, double v) {
+        // Normalize hue, saturation, and value values to range [0, 1]
+        h /= 360.0;
+        s /= 100.0;
+        v /= 100.0;
+
+        // Convert HSV components to normalized values
+        int hi = int(h * 6);
+        double f = h * 6 - hi;
+        double p = v * (1 - s);
+        double q = v * (1 - f * s);
+        double t = v * (1 - (1 - f) * s);
+
+        // Compute RGB values based on hue component
+        int i = hi % 6;
+        switch (i) {
+            case 0: return {int(v * 255), int(t * 255), int(p * 255)};
+            case 1: return {int(q * 255), int(v * 255), int(p * 255)};
+            case 2: return {int(p * 255), int(v * 255), int(t * 255)};
+            case 3: return {int(p * 255), int(q * 255), int(v * 255)}; 
+            case 4: return {int(t * 255), int(p * 255), int(v * 255)};
+            default: return {int(v * 255), int(p * 255), int(q * 255)}; // case 5
+        }
+    }
+
+
     //Select RGB foreground color
     inline std::string setTextColor(int r, int g, int b) {
         return "\033[38;2;" + std::to_string(r) + ";" + std::to_string(g) + ";" + std::to_string(b) + "m";
@@ -128,6 +164,18 @@ namespace estd {
     inline std::string setBackgroundColor(int r, int g, int b) {
         return "\033[48;2;" + std::to_string(r) + ";" + std::to_string(g) + ";" + std::to_string(b) +
                "m"; //Select RGB background color
+    }
+    //Select HSV foreground color 
+    inline std::string setTextColorHSV(int h, int s, int v) {
+        auto [r,g,b] = hsv_to_rgb(h,s,v);
+        // std::cout << h << ", "<< s << ", "<< v << ", -- ";
+        // std::cout << r << ", "<< g << ", "<< b << ", ";
+        return setTextColor(r,g,b);
+    }
+    //Select HSV background color
+    inline std::string setBackgroundColorHSV(int h, int s, int v) {
+        auto [r,g,b] = hsv_to_rgb(h,s,v);
+        return setBackgroundColor(r,g,b);
     }
 
     //clears all of the textSettings

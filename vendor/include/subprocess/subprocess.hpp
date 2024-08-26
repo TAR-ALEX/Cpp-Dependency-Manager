@@ -64,6 +64,10 @@ extern "C" {
   #include <Windows.h>
   #include <io.h>
   #include <cwchar>
+
+  #define close _close
+  #define open _open
+  #define fileno _fileno
 #else
   #include <sys/wait.h>
   #include <unistd.h>
@@ -144,7 +148,7 @@ class OSError: public std::runtime_error
 {
 public:
   OSError(const std::string& err_msg, int err_code):
-    std::runtime_error( err_msg + " : " + std::strerror(err_code) )
+    std::runtime_error( err_msg + ": " + std::strerror(err_code) )
   {}
 };
 
@@ -231,16 +235,15 @@ namespace util
   }
 
 #ifdef __USING_WINDOWS__
-  inline std::string get_last_error()
+  inline std::string get_last_error(DWORD errorMessageID)
   {
-    DWORD errorMessageID = ::GetLastError();
     if (errorMessageID == 0)
       return std::string();
 
     LPSTR messageBuffer = nullptr;
     size_t size = FormatMessageA(
         FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-            FORMAT_MESSAGE_IGNORE_INSERTS,
+            FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_MAX_WIDTH_MASK,
         NULL, errorMessageID, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
         (LPSTR)&messageBuffer, 0, NULL);
 
@@ -627,7 +630,7 @@ namespace util
     int status = 0;
     int ret = -1;
     while (1) {
-      ret = waitpid(pid, &status, WNOHANG);
+      ret = waitpid(pid, &status, 0);
       if (ret == -1) break;
       if (ret == 0) continue;
       return std::make_pair(ret, status);
@@ -786,7 +789,7 @@ struct input
   }
   explicit input(IOTYPE typ) {
     assert (typ == PIPE && "STDOUT/STDERR not allowed");
-#ifndef __USING_WINDOWS__    
+#ifndef __USING_WINDOWS__
     std::tie(rd_ch_, wr_ch_) = util::pipe_cloexec();
 #endif
   }
@@ -1423,22 +1426,10 @@ inline int Popen::wait() noexcept(false)
 
 inline int Popen::poll() noexcept(false)
 {
-  int status;
-
-#ifndef _MSC_VER
-  if (!child_created_) return -1; // TODO: ??
-#endif
-
 #ifdef __USING_WINDOWS__
   int ret = WaitForSingleObject(process_handle_, 0);
   if (ret != WAIT_OBJECT_0) return -1;
-#else
-  // Returns zero if child is still running
-  int ret = waitpid(child_pid_, &status, WNOHANG);
-  if (ret == 0) return -1;
-#endif
 
-#ifdef __USING_WINDOWS__
   DWORD dretcode_;
   if (FALSE == GetExitCodeProcess(process_handle_, &dretcode_))
       throw OSError("GetExitCodeProcess", 0);
@@ -1448,6 +1439,14 @@ inline int Popen::poll() noexcept(false)
 
   return retcode_;
 #else
+  if (!child_created_) return -1; // TODO: ??
+
+  int status;
+
+  // Returns zero if child is still running
+  int ret = waitpid(child_pid_, &status, WNOHANG);
+  if (ret == 0) return -1;
+
   if (ret == child_pid_) {
     if (WIFSIGNALED(status)) {
       retcode_ = WTERMSIG(status);
@@ -1514,7 +1513,7 @@ inline void Popen::execute_process() noexcept(false)
 
   for (auto arg : this->vargs_) {
     argument = converter.from_bytes(arg);
-    util::quote_argument(argument, command_line, true);
+    util::quote_argument(argument, command_line, false);
     command_line += L" ";
   }
 
@@ -1524,7 +1523,7 @@ inline void Popen::execute_process() noexcept(false)
   PROCESS_INFORMATION piProcInfo;
   STARTUPINFOW siStartInfo;
   BOOL bSuccess = FALSE;
-  DWORD creation_flags = CREATE_UNICODE_ENVIRONMENT;
+  DWORD creation_flags = CREATE_UNICODE_ENVIRONMENT | CREATE_NO_WINDOW;
 
   // Set up members of the PROCESS_INFORMATION structure.
   ZeroMemory(&piProcInfo, sizeof(PROCESS_INFORMATION));
@@ -1535,7 +1534,7 @@ inline void Popen::execute_process() noexcept(false)
   ZeroMemory(&siStartInfo, sizeof(STARTUPINFOW));
   siStartInfo.cb = sizeof(STARTUPINFOW);
 
-  siStartInfo.hStdError = this->stream_.g_hChildStd_OUT_Wr;
+  siStartInfo.hStdError = this->stream_.g_hChildStd_ERR_Wr;
   siStartInfo.hStdOutput = this->stream_.g_hChildStd_OUT_Wr;
   siStartInfo.hStdInput = this->stream_.g_hChildStd_IN_Rd;
 
@@ -1554,8 +1553,10 @@ inline void Popen::execute_process() noexcept(false)
                             &piProcInfo); // receives PROCESS_INFORMATION
 
   // If an error occurs, exit the application.
-  if (!bSuccess)
-    throw OSError("CreateProcessW failed", 0);
+  if (!bSuccess) {
+    DWORD errorMessageID = ::GetLastError();
+    throw CalledProcessError("CreateProcess failed: " + util::get_last_error(errorMessageID), errorMessageID);
+  }
 
   CloseHandle(piProcInfo.hThread);
 
@@ -2048,6 +2049,12 @@ template<typename... Args>
 int call(const std::string& arg, Args&&... args)
 {
   return (detail::call_impl(arg, std::forward<Args>(args)...));
+}
+
+template <typename... Args>
+int call(std::vector<std::string> plist, Args &&... args)
+{
+  return (detail::call_impl(plist, std::forward<Args>(args)...));
 }
 
 

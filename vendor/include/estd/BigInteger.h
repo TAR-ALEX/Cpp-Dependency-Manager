@@ -15,11 +15,97 @@ namespace estd {
         bool isNegative = false;
         std::deque<uint32_t> number; //stored in blocks of 9x base10 digits maxBlock: 999,999,999
 
-        BigInteger(std::deque<uint32_t> d) { number = d; }
+        inline BigInteger(std::deque<uint32_t> d) { number = d; }
 
-        bool isZero() const { return (number.size() == 1) && (number[0] == 0); }
+        inline bool isZero() const { return (number.size() == 1) && (number[0] == 0); }
 
-        BigInteger& trimLeadingZeros() {
+        inline void parsePositiveBase10(std::string strNum) {
+            if (strNum.size() == 0) throw std::invalid_argument("Cannot parse BigInteger");
+
+            for (size_t i = 0; i < strNum.size(); i++) {
+                if (strNum[i] < '0' || strNum[i] > '9') throw std::invalid_argument("Cannot parse BigInteger");
+            }
+
+            int right = strNum.length();
+            int left = right - 9;
+            if (left < 0) left = 0;
+            while (left != right) {
+                unsigned long long val = std::stoull(strNum.substr(left, right - left));
+                number.push_front(val);
+                right = left;
+                left = right - 9;
+                if (left < 0) left = 0;
+            }
+            trimLeadingZeros();
+        }
+
+        inline void parsePositiveBase16(std::string strNum) {
+            if (strNum.size() == 0) throw std::invalid_argument("Cannot parse BigInteger");
+
+            //very basic algorithm to get the job done quickly. not efficient, this is probably not very useful
+
+            *this = 0;
+
+            for (size_t i = 0; i < strNum.size(); i++) {
+                *this *= 16;
+                // probably not portable on windows, but who knows. utf8 all the way!
+                uint8_t c = (uint8_t)strNum[i];
+                if (strNum[i] >= '0' && strNum[i] <= '9') {
+                    c -= '0';
+                } else if (strNum[i] >= 'a' && strNum[i] <= 'f') {
+                    c -= 'a';
+                    c += 10;
+                } else if (strNum[i] >= 'A' && strNum[i] <= 'F') {
+                    c -= 'A';
+                    c += 10;
+                } else {
+                    throw std::invalid_argument("Cannot parse BigInteger");
+                }
+                (*this) += c;
+            }
+        }
+
+        inline void parsePositiveBase8(std::string strNum) {
+            if (strNum.size() == 0) throw std::invalid_argument("Cannot parse BigInteger");
+
+            //very basic algorithm to get the job done quickly. not efficient, this is probably not very useful
+
+            *this = 0;
+
+            for (size_t i = 0; i < strNum.size(); i++) {
+                *this *= 8;
+                // probably not portable on windows, but who knows. utf8 all the way!
+                uint8_t c = (uint8_t)strNum[i];
+                if (strNum[i] >= '0' && strNum[i] <= '7') {
+                    c -= '0';
+                } else {
+                    throw std::invalid_argument("Cannot parse BigInteger");
+                }
+                (*this) += c;
+            }
+        }
+
+        inline void parsePositiveBase2(std::string strNum) {
+            if (strNum.size() == 0) throw std::invalid_argument("Cannot parse BigInteger");
+
+            //very basic algorithm to get the job done quickly. not efficient, this is probably not very useful
+
+            *this = 0;
+
+            for (size_t i = 0; i < strNum.size(); i++) {
+                *this *= 2;
+                // probably not portable on windows, but who knows. utf8 all the way!
+                uint8_t c = (uint8_t)strNum[i];
+                if (strNum[i] >= '0' && strNum[i] <= '1') {
+                    c -= '0';
+                } else {
+                    throw std::invalid_argument("Cannot parse BigInteger");
+                }
+                (*this) += c;
+            }
+        }
+
+        inline BigInteger& trimLeadingZeros() {
             while (number.size() > 0) {
                 if (number[0] == 0) number.pop_front();
                 else
@@ -29,14 +115,14 @@ namespace estd {
             return *this;
         }
 
-        BigInteger ninesComplement() const {
+        inline BigInteger ninesComplement() const {
             BigInteger result = *this;
             for (size_t i = 0; i < number.size(); i++) { result.number[i] = 999999999 - result.number[i]; }
             return result;
         }
 
         // (sign is ignored)
-        BigInteger unsignedAdd(const BigInteger& left, const BigInteger& right) const {
+        inline BigInteger unsignedAdd(const BigInteger& left, const BigInteger& right) const {
             uint64_t buffer = 0;
 
             BigInteger result = std::deque<uint32_t>();
@@ -72,16 +158,16 @@ namespace estd {
         }
 
         //PRECONDITION: left MUST be greater than right! (sign is ignored)
-        BigInteger unsignedSubtract(const BigInteger& left, const BigInteger& right) const {
+        inline BigInteger unsignedSubtract(const BigInteger& left, const BigInteger& right) const {
             BigInteger result = unsignedAdd(left.ninesComplement(), right).ninesComplement();
             return result.trimLeadingZeros();
         }
 
-        BigInteger unsignedMultiply(const BigInteger& left, const BigInteger& right) const {
+        inline BigInteger unsignedMultiply(const BigInteger& left, const BigInteger& right) const {
             return unsignedMultiplyKaratsuba(left, right);
         }
 
-        BigInteger unsignedMultiplyKaratsuba(const BigInteger left, const BigInteger right) const {
+        inline BigInteger unsignedMultiplyKaratsuba(const BigInteger left, const BigInteger right) const {
             if (left.number.size() <= 50 || right.number.size() <= 50) return unsignedMultiplySimple(left, right);
 
             size_t splitSize = left.number.size();
@@ -111,7 +197,8 @@ namespace estd {
             return z2 + z1 + z0;
         }
 
-        BigInteger unsignedMultiplySimple(const BigInteger& left, const BigInteger& right) const {
+        // base case for karatsuba
+        inline BigInteger unsignedMultiplySimple(const BigInteger& left, const BigInteger& right) const {
             if (right == 0 || left == 0) return 0;
             uint64_t buffer = 0;
 
@@ -143,7 +230,8 @@ namespace estd {
             return result;
         }
 
-        std::pair<BigInteger, BigInteger> unsignedDivide(BigInteger left, BigInteger right) const {
+        // binary search divide
+        inline std::pair<BigInteger, BigInteger> unsignedDivide(BigInteger left, BigInteger right) const {
             std::pair<BigInteger, BigInteger> result = {0, 0};
 
             left.isNegative = false;
@@ -173,7 +261,8 @@ namespace estd {
             return result;
         }
 
-        BigInteger powerIterative(BigInteger x, BigInteger n) const {
+        //not used as it appears to be a bit slower than the recursive case, does use less memory though
+        inline BigInteger powerIterative(BigInteger x, BigInteger n) const {
             if (n == 0) return 1;
             if (n == 1) return x;
 
@@ -191,7 +280,7 @@ namespace estd {
             return unsignedMultiply(x, y);
         }
 
-        BigInteger powerRecursive(BigInteger p, std::map<BigInteger, BigInteger>& history) const {
+        inline BigInteger powerRecursive(BigInteger p, std::map<BigInteger, BigInteger>& history) const {
             if (history.count(p)) return history[p];
 
             BigInteger res = powerRecursive(p >> 1, history) * powerRecursive(p - (p >> 1), history);
@@ -201,7 +290,7 @@ namespace estd {
             return res;
         }
 
-        bool isMagnitudeLessThan(const BigInteger& left, const BigInteger& right) const {
+        inline bool isMagnitudeLessThan(const BigInteger& left, const BigInteger& right) const {
             if (left.number.size() < right.number.size()) return true;
             if (left.number.size() > right.number.size()) return false;
 
@@ -215,23 +304,23 @@ namespace estd {
 
     public:
         //Constructors
-        BigInteger() { this->operator=(int64_t(0)); };
-        BigInteger(std::nullptr_t){};
-        BigInteger(std::string val) { this->operator=(val); }
-        BigInteger(const char* val) { this->operator=(val); }
+        inline BigInteger() { this->operator=(int64_t(0)); };
+        inline BigInteger(std::nullptr_t){};
+        inline BigInteger(std::string val) { this->operator=(val); }
+        inline BigInteger(const char* val) { this->operator=(val); }
         // template for integer types
         template <class T, typename std::enable_if<std::is_integral<T>::value>::type* = nullptr>
-        BigInteger(T val) {
+        inline BigInteger(T val) {
             this->operator=(val);
         }
 
         //Assignment operators
-        BigInteger& operator=(const char* strNum) {
+        inline BigInteger& operator=(const char* strNum) {
             *this = std::string(strNum);
             return *this;
         }
 
-        BigInteger& operator=(std::string strNum) {
+        inline BigInteger& operator=(std::string strNum) {
             number.clear();
 
             if (strNum.size() == 0) throw std::invalid_argument("Cannot parse BigInteger");
@@ -241,28 +330,21 @@ namespace estd {
                 strNum = strNum.substr(1);
             }
 
-            if (strNum.size() == 0) throw std::invalid_argument("Cannot parse BigInteger");
-
-            for (size_t i = 0; i < strNum.size(); i++) {
-                if (strNum[i] < '0' || strNum[i] > '9') throw std::invalid_argument("Cannot parse BigInteger");
+            if (strNum.size() >= 2 && strNum.substr(0, 2) == "0x") {
+                parsePositiveBase16(strNum.substr(2));
+            } else if (strNum.size() >= 2 && strNum.substr(0, 2) == "0o") {
+                parsePositiveBase8(strNum.substr(2));
+            } else if (strNum.size() >= 2 && strNum.substr(0, 2) == "0b") {
+                parsePositiveBase2(strNum.substr(2));
+            } else {
+                parsePositiveBase10(strNum); // this one is optimized pretty well
             }
 
-            int right = strNum.length();
-            int left = right - 9;
-            if (left < 0) left = 0;
-            while (left != right) {
-                unsigned long long val = std::stoull(strNum.substr(left, right - left));
-                number.push_front(val);
-                right = left;
-                left = right - 9;
-                if (left < 0) left = 0;
-            }
-            trimLeadingZeros();
             if (isZero()) { isNegative = false; }
             return *this;
         }
 
-        BigInteger& operator=(intmax_t n) {
+        inline BigInteger& operator=(intmax_t n) {
             number.clear();
 
             if (n == 0) {
@@ -284,7 +366,7 @@ namespace estd {
             return *this;
         }
 
-        BigInteger& operator=(uintmax_t n) {
+        inline BigInteger& operator=(uintmax_t n) {
             number.clear();
 
             if (n == 0) {
@@ -303,7 +385,7 @@ namespace estd {
         }
         // template for integer types
         template <class T, typename std::enable_if<std::is_integral<T>::value>::type* = nullptr>
-        BigInteger& operator=(T n) {
+        inline BigInteger& operator=(T n) {
             if constexpr (std::is_unsigned<T>::value) {
                 return operator=(uintmax_t(n));
             } else {
@@ -312,7 +394,7 @@ namespace estd {
         }
 
         //Operations
-        BigInteger operator+(const BigInteger& right) const {
+        inline BigInteger operator+(const BigInteger& right) const {
             const BigInteger& left = *this;
             BigInteger result;
 
@@ -332,18 +414,21 @@ namespace estd {
             return result;
         }
 
-        BigInteger& operator+=(const BigInteger& right) { return (*this) = (*this) + right; }
+        inline BigInteger& operator+=(const BigInteger& right) { return (*this) = (*this) + right; }
 
-        BigInteger operator-(BigInteger right) const {
+        inline BigInteger operator-(BigInteger right) const {
             right.isNegative = !right.isNegative;
             return operator+(right);
         }
 
-        BigInteger& operator-=(const BigInteger& right) { return (*this) = (*this) - right; }
+        inline BigInteger& operator-=(const BigInteger& right) { return (*this) = (*this) - right; }
 
-        BigInteger operator*(BigInteger right) const {
+        inline BigInteger operator*(BigInteger right) const {
             const BigInteger& left = *this;
             BigInteger result;
+
+            if (left.isZero()) return left;
+            if (right.isZero()) return right;
 
             result = unsignedMultiply(left, right);
             if (left.isNegative != right.isNegative) result.isNegative = true;
@@ -351,20 +436,21 @@ namespace estd {
             return result;
         }
 
-        BigInteger& operator*=(const BigInteger& right) { return (*this) = (*this) * right; }
+        inline BigInteger& operator*=(const BigInteger& right) { return (*this) = (*this) * right; }
 
-        BigInteger operator/(const BigInteger& right) {
+        inline BigInteger operator/(const BigInteger& right) {
             BigInteger& left = *this;
 
             auto result = unsignedDivide(left, right);
             if (left.isNegative != right.isNegative) result.first.isNegative = true;
+            if (result.first.isNegative && result.first.isZero()) result.first.isNegative = false;
 
             return result.first;
         }
 
-        BigInteger& operator/=(const BigInteger& right) { return (*this) = (*this) / right; }
+        inline BigInteger& operator/=(const BigInteger& right) { return (*this) = (*this) / right; }
 
-        BigInteger operator%(const BigInteger& right) {
+        inline BigInteger operator%(const BigInteger& right) {
             BigInteger& left = *this;
 
             auto result = unsignedDivide(left, right);
@@ -373,9 +459,9 @@ namespace estd {
             return result.second;
         }
 
-        BigInteger& operator%=(const BigInteger& right) { return (*this) = (*this) % right; }
+        inline BigInteger& operator%=(const BigInteger& right) { return (*this) = (*this) % right; }
 
-        BigInteger power(BigInteger p) const {
+        inline BigInteger power(BigInteger p) const {
             if (p == 0) return 0;
             // auto result = powerIterative(*this, p);
             std::map<BigInteger, BigInteger> history = {{1, *this}, {0, 1}};
@@ -388,27 +474,27 @@ namespace estd {
 
         // BigInteger power(BigDecimal p) const;
 
-        BigInteger operator++(int) {
+        inline BigInteger operator++(int) {
             BigInteger oldThis = *this;
             *this = *this + 1;
             return oldThis;
         };
-        BigInteger& operator++() {
+        inline BigInteger& operator++() {
             *this = *this + 1;
             return *this;
         };
-        BigInteger operator--(int) {
+        inline BigInteger operator--(int) {
             BigInteger oldThis = *this;
             *this = *this - 1;
             return oldThis;
         };
-        BigInteger& operator--() {
+        inline BigInteger& operator--() {
             *this = *this - 1;
             return *this;
         };
 
         //Comparators
-        bool operator==(const BigInteger& right) const {
+        inline bool operator==(const BigInteger& right) const {
             const BigInteger& left = *this;
 
             if (left.isZero() && right.isZero()) return true;
@@ -420,19 +506,19 @@ namespace estd {
             return true;
         }
 
-        bool operator!=(const BigInteger& right) const { return !(operator==(right)); }
+        inline bool operator!=(const BigInteger& right) const { return !(operator==(right)); }
 
-        bool operator>(const BigInteger& right) const {
+        inline bool operator>(const BigInteger& right) const {
             const BigInteger& left = *this;
             return right < left;
         }
 
-        bool operator>=(const BigInteger& right) const {
+        inline bool operator>=(const BigInteger& right) const {
             const BigInteger& left = *this;
             return !(left < right);
         }
 
-        bool operator<(const BigInteger& right) const {
+        inline bool operator<(const BigInteger& right) const {
             const BigInteger& left = *this;
             if (left == right) return false;
             if (left.isNegative && !right.isNegative) return true;
@@ -443,13 +529,13 @@ namespace estd {
             return isMagnitudeLessThan(left, right);
         }
 
-        bool operator<=(const BigInteger& right) const {
+        inline bool operator<=(const BigInteger& right) const {
             const BigInteger& left = *this;
             return !(left > right);
         }
 
         //TODO: implement power function and optimize this using divide and conq.
-        BigInteger& operator<<=(const BigInteger& right) {
+        inline BigInteger& operator<<=(const BigInteger& right) {
             BigInteger& result = *this;
             for (BigInteger i = 0; i < right; i++) { result = unsignedMultiply(result, BigInteger(2)); }
             if (result.number.size() == 0) result.number.push_front(0);
@@ -457,7 +543,7 @@ namespace estd {
         }
 
         //TODO: implement power function and optimize this using divide and conq.
-        BigInteger& operator>>=(const BigInteger& right) {
+        inline BigInteger& operator>>=(const BigInteger& right) {
             BigInteger& result = *this;
             for (BigInteger i = 0; i < right; i++) {
                 //essentially we multiply by 5/10 using clever tricks
@@ -468,29 +554,31 @@ namespace estd {
             return result;
         }
 
-        BigInteger operator<<(const BigInteger& right) const {
+        inline BigInteger operator<<(const BigInteger& right) const {
             BigInteger result = *this;
             result <<= right;
             return result;
         }
 
-        BigInteger operator>>(const BigInteger& right) const {
+        inline BigInteger operator>>(const BigInteger& right) const {
             BigInteger result = *this;
             result >>= right;
             return result;
         }
 
-        friend std::ostream& operator<<(std::ostream& out, const BigInteger& right) { return out << right.toString(); }
-        friend std::istream& operator>>(std::istream& in, BigInteger& right); //TODO
+        inline friend std::ostream& operator<<(std::ostream& out, const BigInteger& right) {
+            return out << right.toString();
+        }
+        inline friend std::istream& operator>>(std::istream& in, BigInteger& right); //TODO
 
-        uintmax_t toUint() const {
+        inline uintmax_t toUint() const {
             uintmax_t result = 0;
             if (number.size() >= 1) result += number[number.size() - 1];
             if (number.size() >= 2) result += number[number.size() - 2] * 1000000000;
             if (number.size() >= 3) result += number[number.size() - 3] * 1000000000 * 1000000000;
             return result;
         }
-        intmax_t toInt() const {
+        inline intmax_t toInt() const {
             uintmax_t result = toUint();
             result <<= 1;
             result >>= 1;
@@ -500,7 +588,7 @@ namespace estd {
 
         // template for integer types
         template <class T, typename std::enable_if<std::is_integral<T>::value>::type* = nullptr>
-        explicit operator T() {
+        inline explicit operator T() {
             if constexpr (std::is_unsigned<T>::value) {
                 return toUint();
             } else {
@@ -508,7 +596,7 @@ namespace estd {
             }
         }
 
-        std::string toString() const {
+        inline std::string toString() const {
             if (number.size() == 0) return "nan";
             std::stringstream ss;
             if (isNegative) ss << "-";
@@ -518,7 +606,7 @@ namespace estd {
             }
             return ss.str();
         }
-        size_t getNumDigits() {
+        inline size_t getNumDigits() {
             if (number.size() < 1) return 0;
             size_t result = 0;
             result = (number.size() - 1) * 9;

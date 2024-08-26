@@ -286,6 +286,7 @@ namespace tar {
 						});
 					}
 				} else if (header.typeflag == '5') {// is dir
+					permissions[inTarPath.string()] |= 0111; // all dirs must be executable
 					if (extract && isValidForExtract) {
 						wrapFilesystemCall([&] {
 							estd::files::createDirectories(extractPath);
@@ -492,7 +493,7 @@ namespace tar {
 		bool throwOnFilesystemFailures = false;
 
 		// permissions will be OR'd with this mask (octal permission example permissionMask = 0777)
-		uint16_t minPermissions = 644;
+		uint16_t minPermissions= 0644;
 
 
 		Reader(std::string const& filename) :
