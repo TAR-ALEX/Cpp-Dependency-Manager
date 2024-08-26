@@ -110,6 +110,7 @@ Path downloadFile(string url, Path location) {
 
     httplib::Client cli((scheme + host).c_str());
     cli.set_follow_location(true);
+    cli.enable_server_certificate_verification(false);
 
     auto res = cli.Get(
         path.c_str(),
@@ -122,7 +123,11 @@ Path downloadFile(string url, Path location) {
             return true; // return 'false' if you want to cancel the request.
         }
     );
-
+    if (res.error() != httplib::Error::Success) {
+        cout << "[WARNING] got error when downloading " << res.error() << endl;
+    } else if (res->status < 200 && res->status >= 300) {
+        cout << "[WARNING] non 200 exit code " << res->status << endl;
+    }
     file.close();
     return location;
 }
